@@ -1,0 +1,37 @@
+{
+  "name": "cowlick-sexpr-compiler",
+  "version": "0.0.1",
+  "generators" : [
+    {
+      "name" : "ocamllex" ,
+      "command" : "ocamllex $in"
+    },
+    {
+      "name" : "ocamlyacc" ,
+      "command" : "ocamlyacc $in"
+    }
+  ],
+  "sources": [
+    {
+      "dir": "src",
+      "generators" : [
+        {
+          "name" : "ocamllex",
+          "edge" : ["lexer.ml", ":", "lexer.mll"]
+        },
+        {
+          "name" : "ocamlyacc",
+          "edge" : ["parser.ml", "parser.mli", ":", "parser.mly"]
+        }
+      ]
+    }
+  ],
+  "package-specs": {
+    "module": "commonjs"
+  },
+  "refmt": 3,
+  "suffix": ".js",
+  "bs-dependencies": [
+    "minimist.re"
+  ]
+}

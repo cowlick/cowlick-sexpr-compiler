@@ -1,0 +1,27 @@
+{
+  "name": "cowlick-sexpr-compiler",
+  "version": "0.0.1",
+  "description": "cowlick S-expression compiler",
+  "main": "lib/js/src/index.js",
+  "bin": {
+    "cowlick-sexpr-compiler": "./bin/run"
+  },
+  "files": [
+    "bin",
+    "lib/js"
+  ],
+  "scripts": {
+    "clean": "bsb -clean-world",
+    "build": "bsb -make-world",
+    "watch": "bsb -make-world -w"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "bs-platform": "^2.1.0"
+  },
+  "dependencies": {
+    "minimist.re": "0.0.4"
+  }
+}
