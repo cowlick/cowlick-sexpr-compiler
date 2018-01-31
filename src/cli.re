@@ -39,6 +39,6 @@ switch (parse(List.tl(Array.to_list(Sys.argv)))) {
     | [entry, ..._] =>
       entry
       |> Filename.concat (Sys.getcwd ())
-      |> Compiler.compile_scenario
+      |> Compiler.compile
   }
 };

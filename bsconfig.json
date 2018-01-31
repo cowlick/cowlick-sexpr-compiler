@@ -24,6 +24,10 @@
           "edge" : ["parser.ml", "parser.mli", ":", "parser.mly"]
         }
       ]
+    },
+    {
+      "dir": "__tests__",
+      "type": "dev"
     }
   ],
   "package-specs": {
@@ -33,5 +37,9 @@
   "suffix": ".js",
   "bs-dependencies": [
     "minimist.re"
+  ],
+  "bs-dev-dependencies": [
+    "@glennsl/bs-jest",
+    "bs-glob"
   ]
 }

@@ -1,12 +1,15 @@
-let compile input =
-  input
+let parse_scene target =
+  target
+  |> Node.Fs.readFileAsUtf8Sync
   |> Lexing.from_string
   |> Parser.expr Lexer.token
-  |> Type.print
+  |> Eval.eval_scene
 
-let compile_scenario inputDir =
+let parse_scenario baseDir =
   "first.scm"
-  |> Filename.concat inputDir
-  |> Node.Fs.readFileAsUtf8Sync
-  |> compile
+  |> Filename.concat baseDir
+  |> parse_scene
+
+let compile inputDir =
+  parse_scenario inputDir
 
