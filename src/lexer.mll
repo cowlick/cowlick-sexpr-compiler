@@ -1,5 +1,6 @@
 {
 
+open Printf
 open Parser
 
 exception Syntax_error of string
@@ -16,7 +17,16 @@ let add_utf8 buf code =
     Buffer.add_char buf (Char.chr (0b10000000 lor (code land 0x3f)))
   end
 
-let interpolated = ref false
+type state =
+  | Code
+  | InterpolatedString
+  | InsertedEXpr
+let state = ref Code
+
+let state_to_str = function
+| Code -> "code"
+| InterpolatedString -> "string interpolation"
+| InsertedEXpr -> "expr in string interpolation"
 
 }
 
@@ -29,9 +39,25 @@ rule token = parse
   | "#t" { TRUE }
   | "#f" { FALSE }
   | "if" { IF }
-  | '#' '"' { string (Buffer.create 100) lexbuf }
-  | '"' { string (Buffer.create 100) lexbuf }
-  | '|' { string (Buffer.create 100) lexbuf }
+  | '#' '"' {
+    match !state with
+    | Code ->
+      state := InterpolatedString;
+      string (Buffer.create 100) lexbuf
+    | s -> error (sprintf "[%s] can not nest string interpolation." (state_to_str s))
+  }
+  | '"' {
+    match !state with
+    | Code -> string (Buffer.create 100) lexbuf
+    | s -> error (sprintf "[%s] can not include string." (state_to_str s))
+  }
+  | '|' {
+    match !state with
+    | InsertedEXpr ->
+      state := InterpolatedString;
+      string (Buffer.create 100) lexbuf
+    | s -> error (sprintf "[%s] invalid token: |" (state_to_str s))
+  }
   | [^'(' ')' '0' - '9' ' ' '\t' '\n' '.' '\'' '"' '|' '#'][^' ' '\t' '\n' '(' ')']* {
     SYMBOL(Lexing.lexeme lexbuf)
   }
@@ -42,19 +68,29 @@ rule token = parse
 
 and string buf = parse
   | '"' {
-    if !interpolated then begin
-      interpolated := false;
+    match !state with
+    | InterpolatedString ->
+      state := Code;
       INTERPOLATED_STRING_END(Buffer.contents buf)
-    end
-    else STRING(Buffer.contents buf)
+    | Code -> STRING(Buffer.contents buf)
+    | InsertedEXpr -> error (sprintf "[%s] was not closed" (state_to_str !state))
   }
   | "~|" {
-    interpolated := true;
-    INTERPOLATED_STRING(Buffer.contents buf)
+    match !state with
+    | InterpolatedString ->
+      state := InsertedEXpr;
+      INTERPOLATED_STRING(Buffer.contents buf)
+    | Code ->
+      Buffer.add_string buf "~|";
+      string buf lexbuf
+    | InsertedEXpr -> error (sprintf "[%s] can not nest" (state_to_str !state))
   }
   | "~~" {
-    if !interpolated then Buffer.add_char buf '~'
-    else Buffer.add_string buf "~~";
+    begin match !state with
+    | InterpolatedString -> Buffer.add_char buf '~'
+    | Code -> Buffer.add_string buf "~~"
+    | InsertedEXpr -> error (sprintf "[%s] invalid token: ~~" (state_to_str !state))
+    end;
     string buf lexbuf
   }
   | '\\' '/' { Buffer.add_char buf '/'; string buf lexbuf }
