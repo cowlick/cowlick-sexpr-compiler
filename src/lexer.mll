@@ -30,10 +30,12 @@ let state_to_str = function
 
 }
 
+let newline = '\n' | "\r\n"
 let hex = ['0'-'9'] | ['a'-'f'] | ['A'-'F']
 
 rule token = parse
   | [' ' '\t' '\r' '\n'] { token lexbuf }
+  | ';' { line_comment lexbuf }
   | ['0'-'9']+ { NUMBER (float_of_string(Lexing.lexeme lexbuf)) }
   | ['0'-'9']*'.'['0'-'9']+ { NUMBER (float_of_string(Lexing.lexeme lexbuf)) }
   | "#t" { TRUE }
@@ -110,6 +112,10 @@ and string buf = parse
     string buf lexbuf
   }
   | _ { error ("Illegal character in utf8 string: " ^ Lexing.lexeme lexbuf) }
+
+and line_comment = parse
+  | newline { token lexbuf }
+  | _ { line_comment lexbuf }
 
 {}
 
