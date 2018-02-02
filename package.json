@@ -14,7 +14,7 @@
     "clean": "bsb -clean-world",
     "build": "bsb -make-world",
     "watch": "bsb -make-world -w",
-    "test": "jest"
+    "test": "npm run build && jest --coverage"
   },
   "keywords": [],
   "author": "",

@@ -1,0 +1,13 @@
+opam-version: "1.2"
+name: "cowlick-sexpr-compiler"
+version: "0.0.1"
+maintainer: "pocketberserker"
+author: "pocketberserker"
+homepage: "https://github.com/cowlick/cowlick-sexpr-compiler"
+license: "MIT"
+bug-reports: "https://github.com/cowlick/cowlick-sexpr-compiler/issues"
+dev-repo: "https://github.com/cowlick/cowlick-sexpr-compiler"
+build: []
+install: []
+remove: ["ocamlfind" "remove" "project"]
+depends: "ocamlfind"
