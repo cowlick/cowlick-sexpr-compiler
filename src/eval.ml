@@ -1,4 +1,5 @@
 open Type
+open Printf
 
 exception Analyze_error of string
 let error message = raise (Analyze_error message)
@@ -11,6 +12,8 @@ let rec eval env expr =
   | Number _
   | Bool _
   | String _
+  | InterpolatedString _
+  | Embedded _
   | Primitive _ -> expr
   | Symbol s -> Env.lookup !env s
   | Cons(e1, e2) -> begin
@@ -50,19 +53,20 @@ let eval_frame context env args =
   |> ignore;
   expr
 
-let eval_text context _ args =
-  let text clear = function
+let eval_text context env args =
+  let add_clear clear =
+    if clear then
+      !(context.scripts)
+      |> Js.Array.push (Obj.repr [%bs.obj {
+        tag = "removeLayer";
+        data = {
+          name = "choice"
+        }
+      }])
+      |> ignore
+  in let text clear = function
     | Cons(String value, Nil) -> begin
-      if clear then begin
-        !(context.scripts)
-        |> Js.Array.push (Obj.repr [%bs.obj {
-          tag = "removeLayer";
-          data = {
-            name = "choice"
-          }
-        }])
-        |> ignore
-      end;
+      add_clear clear;
       !(context.scripts)
       |> Js.Array.push (Obj.repr [%bs.obj {
         tag = "text";
@@ -74,10 +78,40 @@ let eval_text context _ args =
       |> ignore;
       Nil
     end
+    | Cons(InterpolatedString exprs, Nil) -> begin
+      add_clear clear;
+      let values = [||] in
+      exprs
+      |> Array.iter (fun expr ->
+        match eval env expr with
+        | String s -> Js.Array.push (Obj.repr s) values |> ignore
+        | Embedded v -> Js.Array.push (Obj.repr v) values |> ignore
+        | e -> error ("invalid interpolated string: " ^ (to_str e))
+      );
+      !(context.scripts)
+      |> Js.Array.push (Obj.repr [%bs.obj {
+        tag = "text";
+        data = {
+          clear = Js.Boolean.to_js_boolean clear;
+          values = values
+        }
+      }])
+      |> ignore;
+      Nil
+    end
     | expr -> error ("eval_text: " ^ (to_str expr)) in
   match car args with
   | Cons(Symbol "clear", Cons(Bool v, Nil)) -> text v (cdr args)
   | _ -> text false args
+
+let eval_variable typ _ args =
+  match car args with
+  | Symbol name ->
+    let d = Js.Dict.empty () in
+    Js.Dict.set d "type" typ;
+    Js.Dict.set d "name" name;
+    Embedded (Obj.repr d)
+  | e -> error (sprintf "invalid %s variable name: %s" typ (to_str e))
 
 let init_env context =
   let env = ref [] in
@@ -85,6 +119,8 @@ let init_env context =
 
   add_primitive "frame" (eval_frame context);
   add_primitive "text" (eval_text context);
+  add_primitive "system" (eval_variable "system");
+  add_primitive "current" (eval_variable "current");
 
   env
 

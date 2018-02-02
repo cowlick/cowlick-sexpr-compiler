@@ -1,0 +1,26 @@
+[
+  {
+    "scripts": [
+      {
+        "tag": "removeLayer",
+        "data": {
+          "name": "choice"
+        }
+      },
+      {
+        "tag": "text",
+        "data": {
+          "clear": true,
+          "values": [
+            "テスト: ",
+            {
+              "type": "system",
+              "name": "test"
+            },
+            "\ntest"
+          ]
+        }
+      }
+    ]
+  }
+]

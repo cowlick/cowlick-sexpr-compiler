@@ -6,6 +6,8 @@ type expr =
   | Symbol of string
   | Bool of bool
   | String of string
+  | InterpolatedString of expr array
+  | Embedded of Obj.t
   | Cons of expr * expr
   | If of expr * expr * expr
   | Primitive of ((symbol list) ref -> expr -> expr)
@@ -24,11 +26,18 @@ let rec to_str x =
   | Symbol s -> sprintf "symbol %s" s
   | Bool v -> sprintf "bool %s" (if v then "#t" else "#f")
   | String v -> sprintf "string \"%s\"" v
+  | InterpolatedString exprs ->
+    exprs
+    |> Array.fold_left (fun s e ->
+      if s = "" then to_str e
+      else sprintf "%s %s" s (to_str e)
+    ) ""
+  | Embedded _ -> "embedded variable"
   | Cons(car, cdr) ->
     sprintf "(%s . %s)" (to_str car) (to_str cdr)
   | If(cond, e1, e2) ->
       sprintf "if [ %s ] -> %s | %s" (to_str cond) (to_str e1) (to_str e2)
-  | Primitive _ -> sprintf "#primitive-proc"
+  | Primitive _ -> "#primitive-proc"
 
 let car = function
     Cons(e1, _) -> e1

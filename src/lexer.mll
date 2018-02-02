@@ -15,6 +15,9 @@ let add_utf8 buf code =
     Buffer.add_char buf (Char.chr (0b10000000 lor ((code lsr 6) land 0x3f)));
     Buffer.add_char buf (Char.chr (0b10000000 lor (code land 0x3f)))
   end
+
+let interpolated = ref false
+
 }
 
 let hex = ['0'-'9'] | ['a'-'f'] | ['A'-'F']
@@ -26,8 +29,10 @@ rule token = parse
   | "#t" { TRUE }
   | "#f" { FALSE }
   | "if" { IF }
+  | '#' '"' { string (Buffer.create 100) lexbuf }
   | '"' { string (Buffer.create 100) lexbuf }
-  | [^'(' ')' '0' - '9' ' ' '\t' '\n' '.' '\'' '"'][^' ' '\t' '\n' '(' ')']* {
+  | '|' { string (Buffer.create 100) lexbuf }
+  | [^'(' ')' '0' - '9' ' ' '\t' '\n' '.' '\'' '"' '|' '#'][^' ' '\t' '\n' '(' ')']* {
     SYMBOL(Lexing.lexeme lexbuf)
   }
   | '(' { LPAREN }
@@ -36,7 +41,22 @@ rule token = parse
   | eof { EOF }
 
 and string buf = parse
-  | '"' { STRING(Buffer.contents buf) }
+  | '"' {
+    if !interpolated then begin
+      interpolated := false;
+      INTERPOLATED_STRING_END(Buffer.contents buf)
+    end
+    else STRING(Buffer.contents buf)
+  }
+  | "~|" {
+    interpolated := true;
+    INTERPOLATED_STRING(Buffer.contents buf)
+  }
+  | "~~" {
+    if !interpolated then Buffer.add_char buf '~'
+    else Buffer.add_string buf "~~";
+    string buf lexbuf
+  }
   | '\\' '/' { Buffer.add_char buf '/'; string buf lexbuf }
   | '\\' '\\' { Buffer.add_char buf '\\'; string buf lexbuf }
   | '\\' 'b' { Buffer.add_char buf '\b'; string buf lexbuf }
@@ -49,7 +69,7 @@ and string buf = parse
     add_utf8 buf code;
     string buf lexbuf
   }
-  | [^ '"' '\\']+ {
+  | [^ '"' '\\' '~']+ {
     Buffer.add_string buf (Lexing.lexeme lexbuf);
     string buf lexbuf
   }
