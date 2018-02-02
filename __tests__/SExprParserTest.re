@@ -16,8 +16,7 @@ describe("SExprParser", () => {
       test(filePath, () => {
         let actual = Compiler.parse_scene(filePath);
         let frames =
-          actual.frames
-          |> Array.map (Eval.frameToJs)
+          actual##frames
           |> Obj.magic
           |> Js.Json.stringify
           |> Js.Json.parseExn;

@@ -31,17 +31,16 @@ and eval_if cond expr1 expr2 env =
 
 (* scenario *)
 
-type frame = {
+type frame = <
   scripts: Obj.t array
-}
-[@@bs.deriving jsConverter]
+> Js.t
 
 type context = {
   frames: frame array;
   scripts: (Obj.t array) ref
 }
 
-type result = {
+type eval_result = {
   frames: frame array
 }
 
@@ -49,7 +48,7 @@ let eval_frame context env args =
   context.scripts := [||];
   let expr = eval env args in
   context.frames
-  |> Js.Array.push ({ scripts = !(context.scripts) })
+  |> Js.Array.push ([%bs.obj { scripts = !(context.scripts) } ])
   |> ignore;
   expr
 

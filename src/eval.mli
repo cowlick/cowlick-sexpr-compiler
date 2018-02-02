@@ -1,13 +1,12 @@
 exception Analyze_error of string
 
-type frame = {
+type frame = <
   scripts: Obj.t array
-}
-[@@bs.deriving jsConverter]
+> Js.t
 
-type result = {
+type eval_result = {
   frames: frame array
 }
 
-val eval_scene: Type.expr -> result
+val eval_scene: Type.expr -> eval_result
 

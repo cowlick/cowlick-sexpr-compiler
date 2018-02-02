@@ -30,7 +30,13 @@ let fail = (msg) => {
 switch (parse(List.tl(Array.to_list(Sys.argv)))) {
 | Minimist.Error(err) =>
   fail(Minimist.report(err));
-| Ok(opts) =>
+| Ok(opts) => {
+  let current = Sys.getcwd ();
+  let outDir =
+    switch (Minimist.get(opts.strings, "output")) {
+    | Some(v) => v
+    | None => Node.Path.join([| current, "script" |])
+    };
   if (Minimist.StrSet.mem("help", opts.presence)) {
     print_endline(help);
     exit(0);
@@ -38,7 +44,7 @@ switch (parse(List.tl(Array.to_list(Sys.argv)))) {
     | [] => fail("Expected entry directory")
     | [entry, ..._] =>
       entry
-      |> Filename.concat (Sys.getcwd ())
-      |> Compiler.compile
+      |> Filename.concat (current)
+      |> Compiler.compile (outDir)
   }
-};
+}};
