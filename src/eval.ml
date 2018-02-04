@@ -105,10 +105,10 @@ let eval_text context env args =
 let eval_variable typ _ args =
   match car args with
   | Symbol name ->
-    let d = Js.Dict.empty () in
-    Js.Dict.set d "type" typ;
-    Js.Dict.set d "name" name;
-    Embedded (Obj.repr d)
+    Embedded (Obj.repr [%bs.obj {
+      _type = typ;
+      name = name
+    }])
   | e -> error (sprintf "invalid %s variable name: %s" typ (to_str e))
 
 let init_env context =
