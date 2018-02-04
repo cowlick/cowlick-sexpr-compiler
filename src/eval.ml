@@ -4,6 +4,8 @@ open Printf
 exception Analyze_error of string
 let error message = raise (Analyze_error message)
 
+let user_defined_env_name = "#"
+
 let rec eval env expr =
   match expr with
   | Nil
@@ -17,7 +19,7 @@ let rec eval env expr =
     match Env.lookup !env s with
     | Some p -> p
     | None -> Primitive(fun e args ->
-      match Env.lookup !e "#" with
+      match Env.lookup !e user_defined_env_name with
       | Some (Primitive proc) -> proc e (Cons(Symbol s, args))
       | Some other -> error ("uneval app: " ^ (to_str other))
       | None -> error (sprintf "not found in env: %s" s)
@@ -189,7 +191,7 @@ let init_env context =
   add_primitive "current" (eval_variable "current");
   add_primitive "image" (eval_image context);
   add_primitive "layer" eval_layer;
-  add_primitive "#" (eval_user_defined context);
+  add_primitive user_defined_env_name (eval_user_defined context);
 
   env
 
