@@ -13,7 +13,16 @@ let rec eval env expr =
   | InterpolatedString _
   | Embedded _
   | Primitive _ -> expr
-  | Symbol s -> Env.lookup !env s
+  | Symbol s -> begin
+    match Env.lookup !env s with
+    | Some p -> p
+    | None -> Primitive(fun e args ->
+      match Env.lookup !e "#" with
+      | Some (Primitive proc) -> proc e (Cons(Symbol s, args))
+      | Some other -> error ("uneval app: " ^ (to_str other))
+      | None -> error (sprintf "not found in env: %s" s)
+    )
+  end
   | Cons(e1, e2) -> begin
     match eval env e1 with
     | Primitive proc -> proc env e2
@@ -144,6 +153,32 @@ let eval_image context env args =
     |> push_tag !(context.scripts) "image"
   | (e, _) -> error (sprintf "image tag requires asset id: %s" (to_str e))
 
+let eval_user_defined context _ args =
+  let layer = Js.Dict.empty () in
+  let rec inner name = function
+  | Cons(Symbol key, xs) ->
+    let value =
+      match car xs with
+      | Bool v -> Obj.repr v
+      | String v -> Obj.repr v
+      | Number v -> Obj.repr v
+      | e -> error (sprintf "type error [%s]: %s" key (to_str e))
+    in
+      Js.Dict.set layer key value |> ignore;
+      inner name (cdr xs)
+  | Cons(x, xs) ->
+    inner name x;
+    inner name xs
+  | Nil -> ()
+  | e -> error (sprintf "invalid option in [%s]: %s" name (to_str e))
+  in
+    match args with
+    | Cons(Symbol name, xs) ->
+      inner name xs;
+      Obj.repr layer
+      |> push_tag !(context.scripts) name
+    | e -> error (sprintf "invalid operation: %s" (to_str e))
+
 let init_env context =
   let env = ref [] in
   let add_primitive name proc = Env.set env name (Primitive proc) in
@@ -154,6 +189,7 @@ let init_env context =
   add_primitive "current" (eval_variable "current");
   add_primitive "image" (eval_image context);
   add_primitive "layer" eval_layer;
+  add_primitive "#" (eval_user_defined context);
 
   env
 
