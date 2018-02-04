@@ -79,20 +79,19 @@ let eval_text context env args =
     end
     | Cons(InterpolatedString exprs, Nil) -> begin
       add_clear clear;
-      let values = [||] in
-      exprs
-      |> Array.iter (fun expr ->
-        match eval env expr with
-        | String s -> Js.Array.push (Obj.repr s) values |> ignore
-        | Embedded v -> Js.Array.push (Obj.repr v) values |> ignore
-        | e -> error ("invalid interpolated string: " ^ (to_str e))
-      );
       !(context.scripts)
       |> Js.Array.push (Obj.repr [%bs.obj {
         tag = "text";
         data = {
           clear = Js.Boolean.to_js_boolean clear;
-          values = values
+          values =
+            exprs
+            |> Array.map (fun expr ->
+              match eval env expr with
+              | String s -> Obj.repr s
+              | Embedded v -> Obj.repr v
+              | e -> error ("invalid interpolated string: " ^ (to_str e))
+            )
         }
       }])
       |> ignore;
