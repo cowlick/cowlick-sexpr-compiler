@@ -1,7 +1,12 @@
 exception Analyze_error of string
 
+type script = <
+  tag: string;
+  data: Obj.t
+> Js.t
+
 type frame = <
-  scripts: Obj.t array
+  scripts: script array
 > Js.t
 
 type eval_result = {

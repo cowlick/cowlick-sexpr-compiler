@@ -4,8 +4,6 @@ open Printf
 exception Analyze_error of string
 let error message = raise (Analyze_error message)
 
-(* S-expression *)
-
 let rec eval env expr =
   match expr with
   | Nil
@@ -29,15 +27,18 @@ and eval_if cond expr1 expr2 env =
   | Bool true -> eval env expr1
   | _ -> eval env expr2
 
-(* scenario *)
+type script = <
+  tag: string;
+  data: Obj.t
+> Js.t
 
 type frame = <
-  scripts: Obj.t array
+  scripts: script array
 > Js.t
 
 type context = {
   frames: frame array;
-  scripts: (Obj.t array) ref
+  scripts: (script array) ref
 }
 
 type eval_result = {
@@ -52,50 +53,49 @@ let eval_frame context env args =
   |> ignore;
   expr
 
+let push_tag scripts name (data: Obj.t) =
+  scripts
+  |> Js.Array.push ([%bs.obj {
+    tag = name;
+    data = data
+  }])
+  |> ignore;
+  Nil
+
 let eval_text context env args =
   let add_clear clear =
     if clear then
-      !(context.scripts)
-      |> Js.Array.push (Obj.repr [%bs.obj {
-        tag = "removeLayer";
-        data = {
-          name = "choice"
-        }
-      }])
+      [%bs.obj {
+        name = "choice"
+      }]
+      |> Obj.repr
+      |> push_tag !(context.scripts) "removeLayer"
       |> ignore
   in let text clear = function
     | Cons(String value, Nil) -> begin
       add_clear clear;
-      !(context.scripts)
-      |> Js.Array.push (Obj.repr [%bs.obj {
-        tag = "text";
-        data = {
-          clear = Js.Boolean.to_js_boolean clear;
-          values = [|value|]
-        }
-      }])
-      |> ignore;
-      Nil
+      [%bs.obj {
+        clear = Js.Boolean.to_js_boolean clear;
+        values = [|value|]
+      }]
+      |> Obj.repr
+      |> push_tag !(context.scripts) "text"
     end
     | Cons(InterpolatedString exprs, Nil) -> begin
       add_clear clear;
-      !(context.scripts)
-      |> Js.Array.push (Obj.repr [%bs.obj {
-        tag = "text";
-        data = {
-          clear = Js.Boolean.to_js_boolean clear;
-          values =
-            exprs
-            |> Array.map (fun expr ->
-              match eval env expr with
-              | String s -> Obj.repr s
-              | Embedded v -> Obj.repr v
-              | e -> error ("invalid interpolated string: " ^ (to_str e))
-            )
-        }
-      }])
-      |> ignore;
-      Nil
+      [%bs.obj {
+        clear = Js.Boolean.to_js_boolean clear;
+        values =
+          exprs
+          |> Array.map (fun expr ->
+            match eval env expr with
+            | String s -> Obj.repr s
+            | Embedded v -> Obj.repr v
+            | e -> error ("invalid interpolated string: " ^ (to_str e))
+          )
+      }]
+      |> Obj.repr
+      |> push_tag !(context.scripts) "text"
     end
     | expr -> error ("eval_text: " ^ (to_str expr)) in
   match car args with
@@ -111,6 +111,39 @@ let eval_variable typ _ args =
     }])
   | e -> error (sprintf "invalid %s variable name: %s" typ (to_str e))
 
+let eval_layer _ args =
+  let layer = Js.Dict.empty () in
+  let rec inner = function
+  | Cons(Symbol key, xs) ->
+    let value =
+      match key, car xs with
+      | ("name", String v) -> Obj.repr v
+      | ("x", Number v)
+      | ("y", Number v) -> Obj.repr v
+      | (_, e) -> error (sprintf "type error [%s]: %s" key (to_str e))
+    in
+      Js.Dict.set layer key value |> ignore;
+      inner (cdr xs)
+  | Cons(x, xs) ->
+    inner x;
+    inner xs
+  | Nil -> ()
+  | e -> error (sprintf "invalid layer option: %s" (to_str e))
+  in
+    inner args;
+    Embedded(Obj.repr layer)
+
+let eval_image context env args =
+  match car args, eval env (car (cdr args)) with
+  | (String assetId, Embedded layer) ->
+    [%bs.obj {
+      assetId = assetId;
+      layer = layer
+    }]
+    |> Obj.repr
+    |> push_tag !(context.scripts) "image"
+  | (e, _) -> error (sprintf "image tag requires asset id: %s" (to_str e))
+
 let init_env context =
   let env = ref [] in
   let add_primitive name proc = Env.set env name (Primitive proc) in
@@ -119,6 +152,8 @@ let init_env context =
   add_primitive "text" (eval_text context);
   add_primitive "system" (eval_variable "system");
   add_primitive "current" (eval_variable "current");
+  add_primitive "image" (eval_image context);
+  add_primitive "layer" eval_layer;
 
   env
 
