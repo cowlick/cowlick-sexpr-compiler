@@ -46,5 +46,9 @@ switch (parse(List.tl(Array.to_list(Sys.argv)))) {
       entry
       |> Filename.concat (current)
       |> Compiler.compile (outDir)
+      |> Js.Promise.catch ((e) => {
+        Js.log(e);
+        Js.Promise.resolve([||])
+      })
   }
 }};
