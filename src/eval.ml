@@ -189,6 +189,37 @@ and eval_if context env args =
   end
   | e -> error (sprintf "syntax error [if cond if-body else-body]: %s" (to_str e))
 
+let eval_cond context env args =
+  let conditions = [||] in
+  let rec inner = function
+  | Cons(Cons(Symbol "else", Cons(expr, Nil)), Nil) -> begin
+    context.scripts := [||];
+    eval env expr |> ignore;
+    !(context.scripts)
+  end
+  | Cons(Cons(pred, Cons(expr, Nil)), xs) -> begin
+    context.scripts := [||];
+    eval env expr |> ignore;
+    conditions
+    |> Js.Array.push [%bs.obj {
+      expression = Js_ast.return_body pred;
+      scripts = !(context.scripts)
+    }]
+    |> ignore;
+    inner xs
+  end
+  | e -> error (sprintf "syntax error [cond (cond1 expr-1) ... (else expr-n)]:\n %s" (to_str e))
+  in
+    let current = !(context.scripts) in
+    let e = inner args in
+    context.scripts := current;
+    [%bs.obj {
+      conditions = conditions;
+      elseBody = e
+    }]
+    |> Obj.repr
+    |> push_tag context "ifElse"
+
 let eval_user_defined context _ args =
   let layer = Js.Dict.empty () in
   let rec inner name = function
@@ -228,6 +259,7 @@ let init_env context =
   add_primitive "image" (eval_image context);
   add_primitive "layer" eval_layer;
   add_primitive "if" (eval_if context);
+  add_primitive "cond" (eval_cond context);
   add_primitive user_defined_env_name (eval_user_defined context);
 
   env

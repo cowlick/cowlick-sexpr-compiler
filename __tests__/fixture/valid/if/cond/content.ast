@@ -1,0 +1,78 @@
+[
+  {
+    "scripts": [
+      {
+        "tag": "ifElse",
+        "data": {
+          "conditions": [
+            {
+              "expression": {
+                "type": "Program",
+                "body": [
+                  {
+                    "type": "ExpressionStatement",
+                    "expression": {
+                      "type": "Literal",
+                      "value": true,
+                      "raw": "true"
+                    }
+                  }
+                ],
+                "sourceType": "script"
+              },
+              "scripts": [
+                {
+                  "tag": "image",
+                  "data": {
+                    "assetId": "test",
+                    "layer": {
+                      "name": "base"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "expression": {
+                "type": "Program",
+                "body": [
+                  {
+                    "type": "ExpressionStatement",
+                    "expression": {
+                      "type": "Literal",
+                      "value": false,
+                      "raw": "false"
+                    }
+                  }
+                ],
+                "sourceType": "script"
+              },
+              "scripts": [
+                {
+                  "tag": "image",
+                  "data": {
+                    "assetId": "test",
+                    "layer": {
+                      "name": "base"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "elseBody": [
+            {
+              "tag": "image",
+              "data": {
+                "assetId": "test",
+                "layer": {
+                  "name": "base"
+                }
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+]
