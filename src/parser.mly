@@ -23,7 +23,6 @@ expr:
   | FALSE { Type.Bool false }
   | interpolated_string { $1 }
   | STRING { Type.String($1) }
-  | LPAREN IF expr expr expr RPAREN { Type.If($3, $4, $5) }
   | LPAREN list RPAREN { $2 }
 
 list:

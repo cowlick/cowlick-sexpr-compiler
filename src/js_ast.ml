@@ -21,7 +21,7 @@ and number_ast value =
   literal (Obj.repr value) (sprintf "%f" value)
 
 and bool_ast value =
-  literal (Obj.repr value) (sprintf "%b" value)
+  literal (Obj.repr (Js.Boolean.to_js_boolean value)) (sprintf "%b" value)
 
 and str_ast str =
   literal (Obj.repr str) (sprintf "\"%s\"" str)
@@ -57,6 +57,18 @@ let assign typ name expr =
           };
           right = translate expr
         }
+      }
+    |];
+    sourceType = "script"
+  }]
+
+let return_body expr =
+  [%bs.obj {
+    _type = "Program";
+    body = [|
+      {
+        _type = "ExpressionStatement";
+        expression = translate expr
       }
     |];
     sourceType = "script"

@@ -31,12 +31,6 @@ let rec eval env expr =
     | Nil -> Nil
     | other -> error ("uneval app: " ^ (to_str other))
   end
-  | If(cond, expr1, expr2) -> eval_if cond expr1 expr2 env
-
-and eval_if cond expr1 expr2 env =
-  match eval env cond with
-  | Bool true -> eval env expr1
-  | _ -> eval env expr2
 
 type script = <
   tag: string;
@@ -170,6 +164,31 @@ let eval_image context env args =
     |> push_tag context "image"
   | (e, _) -> error (sprintf "image tag requires asset id: %s" (to_str e))
 
+and eval_if context env args =
+  match args with
+  | Cons(cond, Cons(expr1, Cons(expr2, _))) -> begin
+    let current = !(context.scripts) in
+    context.scripts := [||];
+    eval env expr1 |> ignore;
+    let e1 = !(context.scripts) in
+    context.scripts := [||];
+    eval env expr2 |> ignore;
+    let e2 = !(context.scripts) in
+    context.scripts := current;
+    [%bs.obj {
+      conditions = [|
+        {
+          expression = Js_ast.return_body cond;
+          scripts = e1
+        }
+      |];
+      elseBody = e2
+    }]
+    |> Obj.repr
+    |> push_tag context "ifElse"
+  end
+  | e -> error (sprintf "syntax error [if cond if-body else-body]: %s" (to_str e))
+
 let eval_user_defined context _ args =
   let layer = Js.Dict.empty () in
   let rec inner name = function
@@ -208,6 +227,7 @@ let init_env context =
   add_primitive "ref" eval_slot_ref;
   add_primitive "image" (eval_image context);
   add_primitive "layer" eval_layer;
+  add_primitive "if" (eval_if context);
   add_primitive user_defined_env_name (eval_user_defined context);
 
   env

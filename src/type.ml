@@ -9,7 +9,6 @@ type expr =
   | InterpolatedString of expr array
   | Embedded of Obj.t
   | Cons of expr * expr
-  | If of expr * expr * expr
   | Primitive of ((symbol list) ref -> expr -> expr)
 
 and symbol_value = Value of expr
@@ -35,8 +34,6 @@ let rec to_str x =
   | Embedded _ -> "embedded variable"
   | Cons(car, cdr) ->
     sprintf "(%s . %s)" (to_str car) (to_str cdr)
-  | If(cond, e1, e2) ->
-      sprintf "if [ %s ] -> %s | %s" (to_str cond) (to_str e1) (to_str e2)
   | Primitive _ -> "#primitive-proc"
 
 let car = function

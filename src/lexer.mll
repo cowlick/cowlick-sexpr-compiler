@@ -40,7 +40,6 @@ rule token = parse
   | ['0'-'9']*'.'['0'-'9']+ { NUMBER (float_of_string(Lexing.lexeme lexbuf)) }
   | "#t" { TRUE }
   | "#f" { FALSE }
-  | "if" { IF }
   | '#' '"' {
     match !state with
     | Code ->
