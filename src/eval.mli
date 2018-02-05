@@ -1,4 +1,4 @@
-exception Analyze_error of string
+exception Eval_error of string
 
 type script = <
   tag: string;

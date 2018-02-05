@@ -1,8 +1,8 @@
 open Type
 open Printf
 
-exception Analyze_error of string
-let error message = raise (Analyze_error message)
+exception Eval_error of string
+let error message = raise (Eval_error message)
 
 let user_defined_env_name = "#"
 
@@ -57,15 +57,22 @@ type eval_result = {
 }
 
 let eval_frame context env args =
-  context.scripts := [||];
-  let expr = eval env args in
-  context.frames
-  |> Js.Array.push ([%bs.obj { scripts = !(context.scripts) } ])
-  |> ignore;
-  expr
+  let rec inner = function
+  | Cons(x, xs) ->
+    eval env x |> ignore;
+    inner xs |> ignore;
+  | Nil -> ()
+  | e -> error (sprintf "invalid frame arguments: %s" (to_str e))
+  in
+    context.scripts := [||];
+    inner args;
+    context.frames
+    |> Js.Array.push ([%bs.obj { scripts = !(context.scripts) } ])
+    |> ignore;
+    Nil
 
-let push_tag scripts name (data: Obj.t) =
-  scripts
+let push_tag context name (data: Obj.t) =
+  !(context.scripts)
   |> Js.Array.push ([%bs.obj {
     tag = name;
     data = data
@@ -80,7 +87,7 @@ let eval_text context env args =
         name = "choice"
       }]
       |> Obj.repr
-      |> push_tag !(context.scripts) "removeLayer"
+      |> push_tag context "removeLayer"
       |> ignore
   in let text clear = function
     | Cons(String value, Nil) -> begin
@@ -90,37 +97,45 @@ let eval_text context env args =
         values = [|value|]
       }]
       |> Obj.repr
-      |> push_tag !(context.scripts) "text"
+      |> push_tag context "text"
     end
     | Cons(InterpolatedString exprs, Nil) -> begin
       add_clear clear;
       [%bs.obj {
         clear = Js.Boolean.to_js_boolean clear;
         values =
-          exprs
-          |> Array.map (fun expr ->
+          Array.fold_right (fun expr acc ->
             match eval env expr with
-            | String s -> Obj.repr s
-            | Embedded v -> Obj.repr v
+            | String s -> if s = "" then acc else Obj.repr s :: acc
+            | Embedded v -> Obj.repr v :: acc
             | e -> error ("invalid interpolated string: " ^ (to_str e))
-          )
+          ) exprs []
+          |> Array.of_list
       }]
       |> Obj.repr
-      |> push_tag !(context.scripts) "text"
+      |> push_tag context "text"
     end
     | expr -> error ("eval_text: " ^ (to_str expr)) in
   match car args with
   | Cons(Symbol "clear", Cons(Bool v, Nil)) -> text v (cdr args)
   | _ -> text false args
 
-let eval_variable typ _ args =
-  match car args with
-  | Symbol name ->
+let eval_slot_set context _ args =
+  match args with
+  | Cons(Symbol typ, Cons(Symbol name, Cons(expr, _))) ->
+    Js_ast.assign typ name expr
+    |> Obj.repr
+    |> push_tag context "eval"
+  | e -> error (sprintf "invalid variable setting: %s" (to_str e))
+
+let eval_slot_ref _ args =
+  match args with
+  | Cons(Symbol typ, Cons(Symbol name, _)) ->
     Embedded (Obj.repr [%bs.obj {
       _type = typ;
       name = name
     }])
-  | e -> error (sprintf "invalid %s variable name: %s" typ (to_str e))
+  | e -> error (sprintf "invalid variable reference: %s" (to_str e))
 
 let eval_layer _ args =
   let layer = Js.Dict.empty () in
@@ -152,7 +167,7 @@ let eval_image context env args =
       layer = layer
     }]
     |> Obj.repr
-    |> push_tag !(context.scripts) "image"
+    |> push_tag context "image"
   | (e, _) -> error (sprintf "image tag requires asset id: %s" (to_str e))
 
 let eval_user_defined context _ args =
@@ -178,7 +193,7 @@ let eval_user_defined context _ args =
     | Cons(Symbol name, xs) ->
       inner name xs;
       Obj.repr layer
-      |> push_tag !(context.scripts) name
+      |> push_tag context name
     | e -> error (sprintf "invalid operation: %s" (to_str e))
 
 let init_env context =
@@ -187,8 +202,10 @@ let init_env context =
 
   add_primitive "frame" (eval_frame context);
   add_primitive "text" (eval_text context);
-  add_primitive "system" (eval_variable "system");
-  add_primitive "current" (eval_variable "current");
+  add_primitive "slot-set!" (eval_slot_set context);
+  add_primitive "set!" (eval_slot_set context);
+  add_primitive "slot-ref" eval_slot_ref;
+  add_primitive "ref" eval_slot_ref;
   add_primitive "image" (eval_image context);
   add_primitive "layer" eval_layer;
   add_primitive user_defined_env_name (eval_user_defined context);

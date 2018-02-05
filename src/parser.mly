@@ -47,7 +47,7 @@ interpolations:
   | interpolations INTERPOLATED_STRING interpolation {
     let xs = $1 in
     Js.Array.push (Type.String($2)) xs |> ignore;
-    Js.Array.push (Type.String($2)) xs |> ignore;
+    Js.Array.push $3 xs |> ignore;
     xs
   }
 
