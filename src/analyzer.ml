@@ -1,7 +1,9 @@
-class type inline_script = object
+class type _inline_script = object
   method generate: unit -> string
   method write: string -> unit Js.Promise.t
-end
+end [@bs]
+
+type inline_script = _inline_script Js.t
 
 type analyze_result = <
   scenario: Obj.t;

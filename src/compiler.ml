@@ -37,7 +37,7 @@ let compile outDir inputDir =
     with _ -> Js.log("output directory already exists: " ^ outDir)
   in
   let out = Node.Path.join [| outDir; "scenario.js" |] in
-    Array.map (fun s -> s#write outDir) result##scripts
-    |> Array.append [| generate out result##scenario |]
-    |> Js.Promise.all
+  Array.map (fun s -> s##write outDir) result##scripts
+  |> Array.append [| generate out result##scenario |]
+  |> Js.Promise.all
 
