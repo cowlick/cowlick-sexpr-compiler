@@ -1,4 +1,7 @@
-open Type
+type 'a environment = {
+  name: string;
+  mutable value: 'a
+}
 
 let lookup env name =
   try
@@ -8,8 +11,8 @@ let lookup env name =
 
 let set env name value =
   try
-    match List.find (fun x -> x.name = name) !env with
-      x -> x.value <- value
+    let x = List.find (fun x -> x.name = name) !env in
+    x.value <- value
   with Not_found ->
     let symbol = { name = name ; value = value } in
     env := symbol :: !env

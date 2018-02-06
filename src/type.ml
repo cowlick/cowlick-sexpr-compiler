@@ -9,14 +9,7 @@ type expr =
   | InterpolatedString of expr array
   | Embedded of Obj.t
   | Cons of expr * expr
-  | Primitive of ((symbol list) ref -> expr -> expr)
-
-and symbol_value = Value of expr
-
-and symbol = {
-  name: string;
-  mutable value: expr
-}
+  | Primitive of (((expr Env.environment) list) ref -> expr -> expr)
 
 let rec to_str x =
   match x with
