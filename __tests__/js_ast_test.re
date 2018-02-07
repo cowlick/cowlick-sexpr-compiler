@@ -42,6 +42,63 @@ let binary = (name) => (Cons(Symbol(name), Cons(Number(0.), Cons(Number(1.), Nil
   }
 }|j});
 
+let arg3 = (name) => (Cons(Symbol(name), Cons(Number(5.), Cons(Number(2.), Cons(Number(1.), Nil)))), {j|{
+  "type": "BinaryExpression",
+  "operator": "$(name)",
+  "left": {
+    "type": "BinaryExpression",
+    "operator": "$(name)",
+    "left": {
+      "type": "Literal",
+      "value": 5,
+      "raw": "5.000000"
+    },
+    "right": {
+      "type": "Literal",
+      "value": 2,
+      "raw": "2.000000"
+    }
+  },
+  "right": {
+    "type": "Literal",
+    "value": 1,
+    "raw": "1.000000"
+  }
+}|j});
+
+let arg4 = (name) => (Cons(Symbol(name), Cons(Number(5.), Cons(Number(2.), Cons(Number(1.), Cons(Number(1.), Nil))))), {j|{
+  "type": "BinaryExpression",
+  "operator": "$(name)",
+  "left": {
+    "type": "BinaryExpression",
+    "operator": "$(name)",
+    "left": {
+      "type": "BinaryExpression",
+      "operator": "$(name)",
+      "left": {
+        "type": "Literal",
+        "value": 5,
+        "raw": "5.000000"
+      },
+      "right": {
+        "type": "Literal",
+        "value": 2,
+        "raw": "2.000000"
+      }
+    },
+    "right": {
+      "type": "Literal",
+      "value": 1,
+      "raw": "1.000000"
+    }
+  },
+  "right": {
+    "type": "Literal",
+    "value": 1,
+    "raw": "1.000000"
+  }
+}|j});
+
 describe("Js_ast", () => {
 
   [|
@@ -76,7 +133,9 @@ describe("Js_ast", () => {
   "type": "Literal",
   "value": 1,
   "raw": "1.000000"
-}|j})
+}|j}),
+    arg3("-"),
+    arg4("-")
   |]
   |> Js.Array.forEach (((sexpr, ast)) => {
     let name = to_str(sexpr);

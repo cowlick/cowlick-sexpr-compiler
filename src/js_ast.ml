@@ -113,8 +113,9 @@ let return_body expr =
   }]
 
 let arithmetic operator unary identity = function
-| Cons(left, Cons(right, Nil)) -> binary operator (translate left) (translate right)
 | Cons(expr, Nil) -> unary operator (translate expr)
+| Cons(left, xs) ->
+  Type.fold_left (fun acc x -> binary operator acc (translate x)) (translate left) xs
 | Nil -> begin
   match identity with
   | Some expr -> expr

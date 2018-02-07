@@ -37,3 +37,9 @@ let cdr = function
     Cons(_, e2) -> e2
   | _ -> Nil
 
+let fold_left f seed expr =
+  let rec inner acc = function
+  | Cons(x, xs) -> inner (f acc x) xs
+  | _ -> acc
+  in inner seed expr
+
