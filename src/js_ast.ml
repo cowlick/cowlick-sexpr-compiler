@@ -58,6 +58,23 @@ and call name exprs =
   }]
   |> Obj.repr
 
+let unary operator arg =
+  [%bs.obj {
+    _type = "UnaryExpression";
+    operator = operator;
+    argument = arg
+  }]
+  |> Obj.repr
+
+let binary operator left right =
+  [%bs.obj {
+    _type = "BinaryExpression";
+    operator = operator;
+    left = left;
+    right = right
+  }]
+  |> Obj.repr
+
 let member receiver property =
   [%bs.obj {
     _type = "MemberExpression";
@@ -94,4 +111,19 @@ let return_body expr =
     |];
     sourceType = "script"
   }]
+
+let arithmetic operator unary identity = function
+| Cons(left, Cons(right, Nil)) -> binary operator (translate left) (translate right)
+| Cons(expr, Nil) -> unary operator (translate expr)
+| Nil -> begin
+  match identity with
+  | Some expr -> expr
+  | None -> error (sprintf "invalid arithmetic operator [%s]: %s" operator (to_str Nil))
+end
+| e -> error (sprintf "invalid arithmetic operator [%s]: %s" operator (to_str e));;
+
+Env.set env "+" (arithmetic "+" (fun op expr -> unary op expr) (Some (number_ast 0.)));;
+Env.set env "-" (arithmetic "-" (fun op expr -> unary op expr) None);;
+Env.set env "*" (arithmetic "*" (fun op expr -> binary op (number_ast 1.) expr) (Some (number_ast 1.)));;
+Env.set env "/" (arithmetic "/" (fun op expr -> binary op (number_ast 1.) expr) None);;
 
