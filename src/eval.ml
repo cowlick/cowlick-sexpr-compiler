@@ -101,7 +101,7 @@ let eval_text context env args =
           Array.fold_right (fun expr acc ->
             match eval env expr with
             | String s -> if s = "" then acc else Obj.repr s :: acc
-            | Embedded v -> Obj.repr v :: acc
+            | Embedded v -> v :: acc
             | e -> error ("invalid interpolated string: " ^ (to_str e))
           ) exprs []
           |> Array.of_list
@@ -220,6 +220,36 @@ let eval_cond context env args =
     |> Obj.repr
     |> push_tag context "ifElse"
 
+let eval_ruby _ args =
+  let options = Js.Dict.empty () in
+  let rec inner = function
+  | Cons(Symbol key, xs) ->
+    let value =
+      match key, car xs with
+      | ("rb", String v) -> v
+      | ("rt", String v) -> v
+      | (_, e) -> error (sprintf "type error [%s]: %s" key (to_str e))
+    in
+      Js.Dict.set options key value |> ignore;
+      inner (cdr xs)
+  | Cons(x, xs) ->
+    inner x;
+    inner xs
+  | Nil -> ()
+  | e -> error ("invalid ruby option: " ^ (to_str e))
+  in
+    inner args;
+    let rb = Js.Dict.unsafeGet options "rb" in
+    let rt = Js.Dict.unsafeGet options "rt" in
+    let result =
+      Ruby.generate rb rt
+      |> Array.map (fun v ->
+        [%bs.obj {
+          value = Ruby.to_json v
+        }]
+      )
+    in Embedded (Obj.repr result)
+
 let eval_user_defined context _ args =
   let layer = Js.Dict.empty () in
   let rec inner name = function
@@ -260,6 +290,7 @@ let init_env context =
   add_primitive "layer" eval_layer;
   add_primitive "if" (eval_if context);
   add_primitive "cond" (eval_cond context);
+  add_primitive "ruby" eval_ruby;
   add_primitive user_defined_env_name (eval_user_defined context);
 
   env
