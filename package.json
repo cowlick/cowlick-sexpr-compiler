@@ -8,7 +8,9 @@
   },
   "files": [
     "bin",
-    "lib/js"
+    "lib/js",
+    "src",
+    "bsconfig.json"
   ],
   "scripts": {
     "clean": "bsb -clean-world",
