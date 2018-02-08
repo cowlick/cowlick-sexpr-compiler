@@ -123,8 +123,14 @@ let arithmetic operator unary identity = function
 end
 | e -> error (sprintf "invalid arithmetic operator [%s]: %s" operator (to_str e));;
 
-Env.set env "+" (arithmetic "+" (fun op expr -> unary op expr) (Some (number_ast 0.)));;
-Env.set env "-" (arithmetic "-" (fun op expr -> unary op expr) None);;
-Env.set env "*" (arithmetic "*" (fun op expr -> binary op (number_ast 1.) expr) (Some (number_ast 1.)));;
-Env.set env "/" (arithmetic "/" (fun op expr -> binary op (number_ast 1.) expr) None);;
+let arithmetic_unary operator identity expr =
+  arithmetic operator (fun op expr -> unary op expr) identity expr
+
+let arithmetic_binary operator identity expr =
+  arithmetic operator (fun op expr -> binary op (number_ast 1.) expr) identity expr;;
+
+Env.set env "+" (arithmetic_unary "+" (Some (number_ast 0.)));;
+Env.set env "-" (arithmetic_unary "-" None);;
+Env.set env "*" (arithmetic_binary "*" (Some (number_ast 1.)));;
+Env.set env "/" (arithmetic_binary "/" None);;
 
