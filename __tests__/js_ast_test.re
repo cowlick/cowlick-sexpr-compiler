@@ -1,147 +1,34 @@
 open Jest;
 open Expect;
-open Type;
-
-let unary = (name) => (Cons(Symbol(name), Cons(Number(1.), Nil)), {j|{
-  "type": "UnaryExpression",
-  "operator": "$(name)",
-  "argument": {
-    "type": "Literal",
-    "value": 1,
-    "raw": "1.000000"
-  }
-}|j});
-
-let arg1 = (name) => (Cons(Symbol(name), Cons(Number(1.), Nil)), {j|{
-  "type": "BinaryExpression",
-  "operator": "$(name)",
-  "left": {
-    "type": "Literal",
-    "value": 1,
-    "raw": "1.000000"
-  },
-  "right": {
-    "type": "Literal",
-    "value": 1,
-    "raw": "1.000000"
-  }
-}|j});
-
-let binary = (name) => (Cons(Symbol(name), Cons(Number(0.), Cons(Number(1.), Nil))), {j|{
-  "type": "BinaryExpression",
-  "operator": "$(name)",
-  "left": {
-    "type": "Literal",
-    "value": 0,
-    "raw": "0.000000"
-  },
-  "right": {
-    "type": "Literal",
-    "value": 1,
-    "raw": "1.000000"
-  }
-}|j});
-
-let arg3 = (name) => (Cons(Symbol(name), Cons(Number(5.), Cons(Number(2.), Cons(Number(1.), Nil)))), {j|{
-  "type": "BinaryExpression",
-  "operator": "$(name)",
-  "left": {
-    "type": "BinaryExpression",
-    "operator": "$(name)",
-    "left": {
-      "type": "Literal",
-      "value": 5,
-      "raw": "5.000000"
-    },
-    "right": {
-      "type": "Literal",
-      "value": 2,
-      "raw": "2.000000"
-    }
-  },
-  "right": {
-    "type": "Literal",
-    "value": 1,
-    "raw": "1.000000"
-  }
-}|j});
-
-let arg4 = (name) => (Cons(Symbol(name), Cons(Number(5.), Cons(Number(2.), Cons(Number(1.), Cons(Number(1.), Nil))))), {j|{
-  "type": "BinaryExpression",
-  "operator": "$(name)",
-  "left": {
-    "type": "BinaryExpression",
-    "operator": "$(name)",
-    "left": {
-      "type": "BinaryExpression",
-      "operator": "$(name)",
-      "left": {
-        "type": "Literal",
-        "value": 5,
-        "raw": "5.000000"
-      },
-      "right": {
-        "type": "Literal",
-        "value": 2,
-        "raw": "2.000000"
-      }
-    },
-    "right": {
-      "type": "Literal",
-      "value": 1,
-      "raw": "1.000000"
-    }
-  },
-  "right": {
-    "type": "Literal",
-    "value": 1,
-    "raw": "1.000000"
-  }
-}|j});
 
 describe("Js_ast", () => {
 
-  [|
-    (Cons(Symbol("assert"), Cons(Bool(true), Nil)), {|{
-  "type": "CallExpression",
-  "callee": {
-    "type": "Identifier",
-    "name": "assert"
-  },
-  "arguments": [
-    {
-      "type": "Literal",
-      "value": true,
-      "raw": "true"
-    }
-  ]
-}|}),
-    unary("+"),
-    unary("-"),
-    binary("+"),
-    binary("-"),
-    binary("*"),
-    binary("/"),
-    arg1("*"),
-    arg1("/"),
-    (Cons(Symbol("+"), Nil), {j|{
-  "type": "Literal",
-  "value": 0,
-  "raw": "0.000000"
-}|j}),
-    (Cons(Symbol("*"), Nil), {j|{
-  "type": "Literal",
-  "value": 1,
-  "raw": "1.000000"
-}|j}),
-    arg3("-"),
-    arg4("-")
-  |]
-  |> Js.Array.forEach (((sexpr, ast)) => {
-    let name = to_str(sexpr);
-    test({j|S式をJavaScript ASTに変換できる $name|j}, () => {
-      let expected = Js.Json.parseExn(ast);
-      expect(Js_ast.translate(sexpr) |> Obj.magic) |> toEqual(expected)
+  describe({j|S式をJavaScript ASTに変換できる|j}, () => {
+
+    let path = "__tests__/fixture/js/valid/";
+
+    Glob.sync({j|$(path)**/*.scm|j})
+    |> Js.Array.forEach ((filePath) => {
+      let baseName =
+        filePath
+        |> Js.String.substrAtMost(~from = 0, ~length = String.length(filePath) - String.length("/content.scm"))
+        |> Js.String.substr(~from = String.length(path));
+      test(filePath, () => {
+        let actual =
+          filePath
+          |> Node.Fs.readFileAsUtf8Sync
+          |> Lexing.from_string
+          |> Parser.expr (Lexer.token)
+          |> Js_ast.translate
+          |> Obj.magic
+          |> Js.Json.stringify
+          |> Js.Json.parseExn;
+        let expected =
+          {j|$(path)$(baseName)/content.ast|j}
+          |> Node.Fs.readFileAsUtf8Sync
+          |> Js.Json.parseExn;
+        expect(actual) |> toEqual(expected)
+      })
     })
   });
 });

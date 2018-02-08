@@ -44,7 +44,7 @@ let rec translate = function
     | _ -> error ("illegal call: " ^ (to_str exprs))
   end
 end
-| expr -> error ("not implemented: %s" ^ (to_str expr))
+| expr -> error ("not implemented: " ^ (to_str expr))
 
 and call name exprs =
   let rec inner acc = function
@@ -127,10 +127,19 @@ let arithmetic_unary operator identity expr =
   arithmetic operator (fun op expr -> unary op expr) identity expr
 
 let arithmetic_binary operator identity expr =
-  arithmetic operator (fun op expr -> binary op (number_ast 1.) expr) identity expr;;
+  arithmetic operator (fun op expr -> binary op (number_ast 1.) expr) identity expr
+
+let and_or operator seed = function
+| Cons(expr, Nil) -> translate expr
+| Cons(left, xs) ->
+  Type.fold_left (fun acc x -> binary operator acc (translate x)) (translate left) xs
+| Nil -> seed
+| e -> error (sprintf "invalid comparison operator [%s]: %s" operator (to_str e));;
 
 Env.set env "+" (arithmetic_unary "+" (Some (number_ast 0.)));;
 Env.set env "-" (arithmetic_unary "-" None);;
 Env.set env "*" (arithmetic_binary "*" (Some (number_ast 1.)));;
 Env.set env "/" (arithmetic_binary "/" None);;
+Env.set env "and" (and_or "&&" (bool_ast true));;
+Env.set env "or" (and_or "||" (bool_ast false));;
 

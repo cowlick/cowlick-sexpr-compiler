@@ -5,7 +5,7 @@ describe("SExprParser", () => {
 
   describe({j|正しい構文が処理できる|j}, () => {
 
-    let path = "__tests__/fixture/valid/";
+    let path = "__tests__/fixture/sexpr/valid/";
 
     Glob.sync({j|$(path)**/*.scm|j})
     |> Js.Array.forEach ((filePath) => {

@@ -1,0 +1,14 @@
+{
+  "type": "BinaryExpression",
+  "operator": "||",
+  "left": {
+    "type": "Literal",
+    "value": true,
+    "raw": "true"
+  },
+  "right": {
+    "type": "Literal",
+    "value": false,
+    "raw": "false"
+  }
+}
