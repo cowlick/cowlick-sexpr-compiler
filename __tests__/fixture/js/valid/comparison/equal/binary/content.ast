@@ -1,0 +1,14 @@
+{
+  "type": "BinaryExpression",
+  "operator": "===",
+  "left": {
+    "type": "Literal",
+    "value": 1,
+    "raw": "1.000000"
+  },
+  "right": {
+    "type": "Literal",
+    "value": 1,
+    "raw": "1.000000"
+  }
+}

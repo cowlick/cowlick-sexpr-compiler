@@ -129,22 +129,46 @@ let arithmetic_unary operator identity expr =
 let arithmetic_binary operator identity expr =
   arithmetic operator (fun op expr -> binary op (number_ast 1.) expr) identity expr
 
+let true_ast = bool_ast true
+
+let reduce f xs =
+  if Js.Array.length xs = 0 then raise (Invalid_argument "array is empty")
+  else Js.Array.reduce f (xs.(0)) (Js.Array.sliceFrom 1 xs)
+
+let comparison operator = function
+| Nil
+| Cons(_, Nil) -> true_ast
+| Cons(_, _) as exprs ->
+  exprs
+  |> Type.pairwise
+  |> Js.Array.map (fun (left, right) -> binary operator (translate left) (translate right))
+  |> reduce (binary "&&")
+| e -> error (sprintf "invalid comparison operator [%s]: %s" operator (to_str e))
+
 let and_or operator seed = function
 | Cons(expr, Nil) -> translate expr
 | Cons(left, xs) ->
   Type.fold_left (fun acc x -> binary operator acc (translate x)) (translate left) xs
 | Nil -> seed
-| e -> error (sprintf "invalid comparison operator [%s]: %s" operator (to_str e))
+| e -> error (sprintf "invalid logical operator [%s]: %s" operator (to_str e))
 
 let bang = function
 | Cons(expr, Nil) -> unary "!" (translate expr)
-| e -> error ("invalid logical not: " ^ (to_str e));;
+| e -> error ("invalid logical operator [!]: " ^ (to_str e));;
 
 Env.set env "+" (arithmetic_unary "+" (Some (number_ast 0.)));;
 Env.set env "-" (arithmetic_unary "-" None);;
 Env.set env "*" (arithmetic_binary "*" (Some (number_ast 1.)));;
 Env.set env "/" (arithmetic_binary "/" None);;
-Env.set env "and" (and_or "&&" (bool_ast true));;
+Env.set env "and" (and_or "&&" true_ast);;
 Env.set env "or" (and_or "||" (bool_ast false));;
 Env.set env "not" bang;;
+[|
+  ("=", "===");
+  ("<", "<");
+  (">", ">");
+  ("<=", "<=");
+  (">=", ">=")
+|]
+|> Array.iter (fun (x, y) -> Env.set env x (comparison y));;
 

@@ -43,3 +43,14 @@ let fold_left f seed expr =
   | _ -> acc
   in inner seed expr
 
+let pairwise expr =
+  let rec inner acc v = function
+  | Cons(x, xs) -> begin
+    acc |> Js.Array.push (v, x) |> ignore;
+    inner acc x xs
+  end
+  | _ -> acc in
+  match expr with
+  | Cons(x, (Cons(_, _) as xs)) -> inner [||] x xs
+  | _ -> [||]
+
