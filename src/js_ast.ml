@@ -99,6 +99,7 @@ let assign typ name expr =
     |];
     sourceType = "script"
   }]
+  |> Obj.repr
 
 let return_body expr =
   [%bs.obj {
@@ -111,6 +112,7 @@ let return_body expr =
     |];
     sourceType = "script"
   }]
+  |> Obj.repr
 
 let arithmetic operator unary identity = function
 | Cons(expr, Nil) -> unary operator (translate expr)
