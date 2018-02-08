@@ -1,0 +1,33 @@
+{
+  "type": "BinaryExpression",
+  "operator": "&&",
+  "left": {
+    "type": "BinaryExpression",
+    "operator": "===",
+    "left": {
+      "type": "Literal",
+      "value": "foo",
+      "raw": "\"foo\""
+    },
+    "right": {
+      "type": "Literal",
+      "value": "bar",
+      "raw": "\"bar\""
+    }
+  },
+  "right": {
+    "type": "BinaryExpression",
+    "operator": "===",
+    "left": {
+      "type": "Literal",
+      "value": "bar",
+      "raw": "\"bar\""
+    },
+    "right": {
+      "type": "Literal",
+      "value": "buz",
+      "raw": "\"buz\""
+    }
+  }
+}
+

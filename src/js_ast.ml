@@ -168,7 +168,8 @@ Env.set env "not" bang;;
   ("<", "<");
   (">", ">");
   ("<=", "<=");
-  (">=", ">=")
+  (">=", ">=");
+  ("string=?", "===")
 |]
 |> Array.iter (fun (x, y) -> Env.set env x (comparison y));;
 
