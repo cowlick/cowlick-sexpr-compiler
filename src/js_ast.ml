@@ -134,7 +134,11 @@ let and_or operator seed = function
 | Cons(left, xs) ->
   Type.fold_left (fun acc x -> binary operator acc (translate x)) (translate left) xs
 | Nil -> seed
-| e -> error (sprintf "invalid comparison operator [%s]: %s" operator (to_str e));;
+| e -> error (sprintf "invalid comparison operator [%s]: %s" operator (to_str e))
+
+let bang = function
+| Cons(expr, Nil) -> unary "!" (translate expr)
+| e -> error ("invalid logical not: " ^ (to_str e));;
 
 Env.set env "+" (arithmetic_unary "+" (Some (number_ast 0.)));;
 Env.set env "-" (arithmetic_unary "-" None);;
@@ -142,4 +146,5 @@ Env.set env "*" (arithmetic_binary "*" (Some (number_ast 1.)));;
 Env.set env "/" (arithmetic_binary "/" None);;
 Env.set env "and" (and_or "&&" (bool_ast true));;
 Env.set env "or" (and_or "||" (bool_ast false));;
+Env.set env "not" bang;;
 

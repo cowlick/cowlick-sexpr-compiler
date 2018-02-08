@@ -1,0 +1,9 @@
+{
+  "type": "UnaryExpression",
+  "operator": "!",
+  "argument": {
+    "type": "Literal",
+    "value": true,
+    "raw": "true"
+  }
+}
