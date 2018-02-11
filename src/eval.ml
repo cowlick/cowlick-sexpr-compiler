@@ -47,7 +47,8 @@ type context = {
 }
 
 type eval_result = {
-  frames: frame array
+  frames: frame array;
+  dependencies: string array
 }
 
 let eval_frame context env args =
@@ -302,6 +303,7 @@ let eval_scene expr =
   } in
   let _ = eval (init_env context) expr in
   {
-    frames = context.frames
+    frames = context.frames;
+    dependencies = [||]
   }
 

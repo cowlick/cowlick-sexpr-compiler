@@ -10,7 +10,8 @@ type frame = <
 > Js.t
 
 type eval_result = {
-  frames: frame array
+  frames: frame array;
+  dependencies: string array
 }
 
 val eval_scene: Type.expr -> eval_result

@@ -6,6 +6,11 @@ type scene = <
   frames: frame array
 > Js.t
 
+type parse_result = <
+  scene: scene;
+  dependencies: string array
+> Js.t
+
 external mkdirSync : string -> unit = "" [@@bs.val] [@@bs.module "fs"]
 
 let parse_scene target =
@@ -16,21 +21,29 @@ let parse_scene target =
     |> Parser.expr Lexer.token
     |> eval_scene
   in [%bs.obj {
-    label = filename target;
-    frames = result.frames
+    scene = [%bs.obj {
+      label = filename target;
+      frames = result.frames
+    }];
+    dependencies = result.dependencies
   }]
 
-let parse baseDir =
-  let scenario = [||] in
-  let scene =
-    "first.scm"
-    |> Filename.concat baseDir
-    |> parse_scene in
-  Js.Array.push scene scenario |> ignore;
-  scenario
+let parse input =
+  let baseDir = Node.Path.dirname input in
+  let rec inner scenario = function
+  | [||] -> scenario
+  | xs -> begin
+    let result = Js.Array.pop xs |> Js.Option.getExn |> Filename.concat baseDir |> parse_scene in
+    Js.Array.push result##scene scenario |> ignore;
+    result##dependencies
+    |> Js.Array.filter (fun x -> not (Js.Array.includes x xs) && not (Js.Array.some (fun s -> s##label = filename x) scenario))
+    |> Js.Array.concat xs
+    |> inner scenario
+  end
+  in inner [||] [|input|]
 
-let compile outDir inputDir =
-  let ast = parse inputDir in
+let compile outDir input =
+  let ast = parse input in
   let result = analyze (Obj.repr ast) in
   let () =
     try mkdirSync outDir

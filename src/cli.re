@@ -13,7 +13,7 @@ let parse = Minimist.parse(
 );
 
 let help = {|
-Usage: cowlick-sexpr-compiler [options] inputDir
+Usage: cowlick-sexpr-compiler [options] input
 
   -o, --output (default: ./script)
       output directory
