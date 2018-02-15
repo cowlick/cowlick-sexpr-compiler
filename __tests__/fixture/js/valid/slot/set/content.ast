@@ -1,0 +1,38 @@
+{
+  "type": "Program",
+  "body": [
+    {
+      "type": "ExpressionStatement",
+      "expression": {
+        "type": "AssignmentExpression",
+        "operator": "=",
+        "left": {
+          "type": "MemberExpression",
+          "object": {
+            "type": "MemberExpression",
+            "object": {
+              "type": "Identifier",
+              "name": "variables"
+            },
+            "property": {
+              "type": "Identifier",
+              "name": "current"
+            },
+            "computed": false
+          },
+          "property": {
+            "type": "Identifier",
+            "name": "foo"
+          },
+          "computed": false
+        },
+        "right": {
+          "type": "Literal",
+          "value": "test0",
+          "raw": "\"test0\""
+        }
+      }
+    }
+  ],
+  "sourceType": "script"
+}

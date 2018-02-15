@@ -1,0 +1,1 @@
+(slot-ref current foo)

@@ -1,0 +1,20 @@
+{
+  "type": "MemberExpression",
+  "object": {
+    "type": "MemberExpression",
+    "object": {
+      "type": "Identifier",
+      "name": "variables"
+    },
+    "property": {
+      "type": "Identifier",
+      "name": "current"
+    },
+    "computed": false
+  },
+  "property": {
+    "type": "Identifier",
+    "name": "foo"
+  },
+  "computed": false
+}

@@ -156,7 +156,19 @@ let and_or operator seed = function
 
 let bang = function
 | Cons(expr, Nil) -> unary "!" (translate expr)
-| e -> error ("invalid logical operator [!]: " ^ (to_str e));;
+| e -> error ("invalid logical operator [!]: " ^ (to_str e))
+
+let slot_set = function
+| Cons(Symbol typ, Cons(Symbol name, Cons(expr, _))) ->
+  assign typ name expr
+  |> Obj.repr
+| e -> error (sprintf "invalid variable setting: %s" (to_str e))
+
+let slot_ref = function
+| Cons(Symbol typ, Cons(Symbol name, _)) ->
+  member (member (identifier "variables") (identifier typ)) (identifier name)
+  |> Obj.repr
+| e -> error (sprintf "invalid variable reference: %s" (to_str e));;
 
 Env.set env "+" (arithmetic_unary "+" (Some (number_ast 0.)));;
 Env.set env "-" (arithmetic_unary "-" None);;
@@ -174,4 +186,8 @@ Env.set env "not" bang;;
   ("string=?", "===")
 |]
 |> Array.iter (fun (x, y) -> Env.set env x (comparison y));;
+Env.set env "slot-set!" slot_set;;
+Env.set env "set!" slot_set;;
+Env.set env "slot-ref" slot_ref;;
+Env.set env "ref" slot_ref;;
 
