@@ -22,9 +22,9 @@
   "author": "",
   "license": "MIT",
   "devDependencies": {
-    "@glennsl/bs-jest": "0.4.0",
+    "@glennsl/bs-jest": "0.4.2",
     "bs-glob": "0.1.1",
-    "bs-platform": "^2.1.0"
+    "bs-platform": "2.2.1"
   },
   "dependencies": {
     "cowlick-analyzer": "0.4.0",
