@@ -10,4 +10,4 @@ dev-repo: "https://github.com/cowlick/cowlick-sexpr-compiler"
 build: []
 install: []
 remove: ["ocamlfind" "remove" "project"]
-depends: "ocamlfind"
+depends: ["ocamlfind" "menhir"]

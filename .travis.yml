@@ -7,4 +7,5 @@ env:
 script:
 - npm install
 - bash -ex .travis-opam.sh
+- eval `opam config env`
 - npm test

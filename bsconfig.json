@@ -7,8 +7,8 @@
       "command" : "ocamllex $in"
     },
     {
-      "name" : "ocamlyacc" ,
-      "command" : "ocamlyacc $in"
+      "name" : "menhir" ,
+      "command" : "menhir $in"
     }
   ],
   "sources": [
@@ -20,7 +20,7 @@
           "edge" : ["lexer.ml", ":", "lexer.mll"]
         },
         {
-          "name" : "ocamlyacc",
+          "name" : "menhir",
           "edge" : ["parser.ml", "parser.mli", ":", "parser.mly"]
         }
       ]
