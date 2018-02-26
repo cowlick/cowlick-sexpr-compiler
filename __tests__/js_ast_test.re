@@ -18,7 +18,8 @@ describe("Js_ast", () => {
           filePath
           |> Node.Fs.readFileAsUtf8Sync
           |> Lexing.from_string
-          |> Parser.expr (Lexer.token)
+          |> Parser.entry (Lexer.token)
+          |> Ast.kind_of
           |> Js_ast.translate
           |> Obj.magic
           |> Js.Json.stringify

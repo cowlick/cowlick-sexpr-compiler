@@ -1,4 +1,3 @@
-open Type
 open Printf
 
 exception Translate_error of string
@@ -28,27 +27,30 @@ let identifier name =
   }]
   |> Obj.repr
 
-let env: (((expr -> Obj.t) Env.environment) list) ref = ref []
+let env: (((Type.t -> Obj.t) Env.environment) list) ref = ref []
 
-let rec translate = function
-| Number v -> number_ast v
-| Bool  v -> bool_ast v
-| String v -> str_ast v
-| Cons(Symbol s, args) as exprs -> begin
-  match Env.lookup !env s with
-  | Some f -> f args
-  | None -> begin
-    match args with
-    | Cons(_, _) -> call s args
-    | Nil -> identifier s
-    | _ -> error ("illegal call: " ^ (to_str exprs))
+let rec translate expr =
+  let open Type in
+  match expr with
+  | Number v -> number_ast v
+  | Bool  v -> bool_ast v
+  | String v -> str_ast v
+  | Cons({ kind = Symbol s; loc = _ }, { kind = args; loc = _ }) as exprs -> begin
+    match Env.lookup !env s with
+    | Some f -> f args
+    | None -> begin
+      match args with
+      | Cons(_, _) -> call s args
+      | Nil -> identifier s
+      | _ -> error ("illegal call: " ^ (to_str exprs))
+    end
   end
-end
-| expr -> error ("not implemented: " ^ (to_str expr))
+  | expr -> error ("not implemented: " ^ (to_str expr))
 
 and call name exprs =
+  let open Type in
   let rec inner acc = function
-  | Cons(x, xs) -> inner (translate x :: acc) xs
+  | Cons({ kind = x; loc = _ }, { kind = xs; loc = _ }) -> inner (translate x :: acc) xs
   | Nil -> List.rev acc
   | expr -> translate expr :: acc |> List.rev
   in [%bs.obj {
@@ -114,16 +116,18 @@ let return_body expr =
   }]
   |> Obj.repr
 
-let arithmetic operator unary identity = function
-| Cons(expr, Nil) -> unary operator (translate expr)
-| Cons(left, xs) ->
-  Type.fold_left (fun acc x -> binary operator acc (translate x)) (translate left) xs
-| Nil -> begin
-  match identity with
-  | Some expr -> expr
-  | None -> error (sprintf "invalid arithmetic operator [%s]: %s" operator (to_str Nil))
-end
-| e -> error (sprintf "invalid arithmetic operator [%s]: %s" operator (to_str e));;
+let arithmetic operator unary identity expr =
+  let open Type in
+  match expr with
+  | Cons({ kind = e; loc = _ }, { kind = Nil; loc = _ }) -> unary operator (translate e)
+  | Cons({ kind = left; loc = _ }, { kind = xs; loc = _ }) ->
+    Type.fold_left (fun acc x -> binary operator acc (translate x)) (translate left) xs
+  | Nil -> begin
+    match identity with
+    | Some e -> e
+    | None -> error (sprintf "invalid arithmetic operator [%s]: %s" operator (to_str Nil))
+  end
+  | e -> error (sprintf "invalid arithmetic operator [%s]: %s" operator (to_str e));;
 
 let arithmetic_unary operator identity expr =
   arithmetic operator (fun op expr -> unary op expr) identity expr
@@ -137,38 +141,48 @@ let reduce f xs =
   if Js.Array.length xs = 0 then raise (Invalid_argument "array is empty")
   else Js.Array.reduce f (xs.(0)) (Js.Array.sliceFrom 1 xs)
 
-let comparison operator = function
-| Nil
-| Cons(_, Nil) -> true_ast
-| Cons(_, _) as exprs ->
-  exprs
-  |> Type.pairwise
-  |> Js.Array.map (fun (left, right) -> binary operator (translate left) (translate right))
-  |> reduce (binary "&&")
-| e -> error (sprintf "invalid comparison operator [%s]: %s" operator (to_str e))
+let comparison operator expr =
+  let open Type in
+  match expr with
+  | Nil
+  | Cons(_, { kind = Nil; loc = _ }) -> true_ast
+  | Cons(_, _) as exprs ->
+    exprs
+    |> Type.pairwise
+    |> Js.Array.map (fun (left, right) -> binary operator (translate left) (translate right))
+    |> reduce (binary "&&")
+  | e -> error (sprintf "invalid comparison operator [%s]: %s" operator (to_str e))
 
-let and_or operator seed = function
-| Cons(expr, Nil) -> translate expr
-| Cons(left, xs) ->
-  Type.fold_left (fun acc x -> binary operator acc (translate x)) (translate left) xs
-| Nil -> seed
-| e -> error (sprintf "invalid logical operator [%s]: %s" operator (to_str e))
+let and_or operator seed expr =
+  let open Type in
+  match expr with
+  | Cons({ kind = expr; loc = _ }, { kind = Nil; loc = _ }) -> translate expr
+  | Cons({ kind = left; loc = _ }, { kind = xs; loc = _ }) ->
+    Type.fold_left (fun acc x -> binary operator acc (translate x)) (translate left) xs
+  | Nil -> seed
+  | e -> error (sprintf "invalid logical operator [%s]: %s" operator (to_str e))
 
-let bang = function
-| Cons(expr, Nil) -> unary "!" (translate expr)
-| e -> error ("invalid logical operator [!]: " ^ (to_str e))
+let bang expr =
+  let open Type in
+  match expr with
+  | Cons({ kind = e; loc = _ }, { kind = Nil; loc = _ }) -> unary "!" (translate e)
+  | e -> error ("invalid logical operator [!]: " ^ (to_str e))
 
-let slot_set = function
-| Cons(Symbol typ, Cons(Symbol name, Cons(expr, _))) ->
-  assign typ name expr
-  |> Obj.repr
-| e -> error (sprintf "invalid variable setting: %s" (to_str e))
+let slot_set expr =
+  let open Type in
+  match expr with
+  | Cons({ kind = Symbol typ; loc = _ }, { kind = Cons({ kind = Symbol name; loc = _ }, { kind = Cons({ kind = e; loc = _ }, _); loc = _ }); loc = _ }) ->
+    assign typ name e
+    |> Obj.repr
+  | e -> error (sprintf "invalid variable setting: %s" (to_str e))
 
-let slot_ref = function
-| Cons(Symbol typ, Cons(Symbol name, _)) ->
-  member (member (identifier "variables") (identifier typ)) (identifier name)
-  |> Obj.repr
-| e -> error (sprintf "invalid variable reference: %s" (to_str e));;
+let slot_ref expr =
+  let open Type in
+  match expr with
+  | Cons({ kind = Symbol typ; loc = _ }, { kind = Cons({ kind = Symbol name; loc = _ }, _); loc = _ }) ->
+    member (member (identifier "variables") (identifier typ)) (identifier name)
+    |> Obj.repr
+  | e -> error (sprintf "invalid variable reference: %s" (to_str e));;
 
 Env.set env "+" (arithmetic_unary "+" (Some (number_ast 0.)));;
 Env.set env "-" (arithmetic_unary "-" None);;

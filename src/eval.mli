@@ -14,5 +14,5 @@ type eval_result = {
   dependencies: string array
 }
 
-val eval_scene: Type.expr -> eval_result
+val eval_scene: Type.t Ast.t -> eval_result
 

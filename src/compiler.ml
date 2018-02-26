@@ -18,7 +18,7 @@ let parse_scene target =
     target
     |> Node.Fs.readFileAsUtf8Sync
     |> Lexing.from_string
-    |> Parser.expr Lexer.token
+    |> Parser.entry Lexer.token
     |> eval_scene
   in [%bs.obj {
     scene = [%bs.obj {
