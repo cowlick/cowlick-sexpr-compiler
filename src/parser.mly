@@ -12,7 +12,7 @@ let to_loc s_pos e_pos =
     end_bol = e_pos.pos_cnum - e_pos.pos_bol;
   }
 
-let make kind ~s ~e =
+let make kind s e =
   let loc = to_loc s e in
   Ast.{kind; loc}
 
