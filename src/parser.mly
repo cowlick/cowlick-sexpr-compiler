@@ -24,7 +24,6 @@ let make kind s e =
 %token <string> INTERPOLATED_STRING
 %token <string> INTERPOLATED_STRING_END
 %token TRUE FALSE
-%token IF
 %token LPAREN RPAREN
 %token DOT
 %token EOF
