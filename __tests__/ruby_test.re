@@ -1,10 +1,9 @@
 open Jest;
 open Expect;
-open Ruby;
 
 describe("Ruby", () => {
 
-  let data: array((string, string, array(ruby))) = [|
+  let data: array((string, string, array(Ruby.t))) = [|
     ({|ai|}, {|ue|}, [|
       [%bs.obj {
         rb: {|a |},
@@ -70,7 +69,7 @@ describe("Ruby", () => {
   data
   |> Js.Array.forEach (((rb, rt, expected)) => {
     test({j|差分表示に変換できる|j}, () => {
-      let actual = generate(rb, rt);
+      let actual = Ruby.generate(rb, rt);
       expect(actual) |> toEqual(expected)
     })
   });

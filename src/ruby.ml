@@ -1,4 +1,4 @@
-type ruby = <
+type t = <
   rb: string;
   rt: string
 > Js.t
