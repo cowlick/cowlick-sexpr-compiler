@@ -2,7 +2,9 @@ open Type
 open Printf
 
 exception Eval_error of string
-let error message = raise (Eval_error message)
+let error (loc: Location.t) message expr =
+  let value = sprintf "[Line: %d, Column: %d]%s:\n%s" loc.begin_line loc.begin_column message (to_str expr) in
+  raise (Eval_error value)
 
 let user_defined_env_name = "#"
 
@@ -15,21 +17,22 @@ let rec eval env expr =
   | InterpolatedString _
   | Embedded _
   | Primitive _ -> expr
-  | Symbol(s, _) -> begin
+  | Symbol(s, l1) -> begin
     match Env.lookup !env s with
     | Some p -> p
-    | None -> Primitive(fun e args ->
+    | None -> Primitive(fun e l2 args ->
       match Env.lookup !e user_defined_env_name with
-      | Some (Primitive proc) -> proc e (Cons({ kind = expr; loc = Location.zero }, { kind = args; loc = Location.zero }))
-      | Some other -> error ("uneval app: " ^ (to_str other))
-      | None -> error (sprintf "not found in env: %s" s)
+      | Some (Primitive proc) ->
+        proc e l1 (Cons({ kind = expr; loc = l1 }, { kind = args; loc = l2 }))
+      | Some other -> error l1 "uneval app" other
+      | None -> error l1 "not found in env" expr
     )
   end
-  | Cons({ kind = e1; loc = _ }, { kind = e2; loc = _ }) -> begin
+  | Cons({ kind = e1; loc = l1 }, { kind = e2; loc = l2 }) -> begin
     match eval env e1 with
-    | Primitive proc -> proc env e2
+    | Primitive proc -> proc env l2 e2
     | Nil -> Nil
-    | other -> error ("uneval app: " ^ (to_str other))
+    | other -> error l1 "uneval app" other
   end
 
 type script = <
@@ -51,13 +54,13 @@ type eval_result = {
   dependencies: string array
 }
 
-let eval_frame context env args =
+let eval_frame context env loc args =
   let rec inner = function
   | Cons({ kind = x; loc = _ }, { kind = xs; loc = _ }) ->
     eval env x |> ignore;
     inner xs |> ignore;
   | Nil -> ()
-  | e -> error (sprintf "invalid frame arguments: %s" (to_str e))
+  | e -> error loc "invalid frame arguments" e
   in
     context.scripts := [||];
     inner args;
@@ -75,7 +78,7 @@ let push_tag context name (data: 'a) =
   |> ignore;
   Nil
 
-let eval_text context env args =
+let eval_text context env loc args =
   let add_clear clear =
     if clear then
       [%bs.obj {
@@ -101,43 +104,43 @@ let eval_text context env args =
             match ast |> Ast.kind_of |> eval env with
             | String s -> if s = "" then acc else Obj.repr s :: acc
             | Embedded v -> v :: acc
-            | e -> error ("invalid interpolated string: " ^ (to_str e))
+            | e -> error (Ast.loc_of ast) "invalid interpolated string" e
           ) exprs []
           |> Array.of_list
       }]
       |> push_tag context "text"
     end
-    | expr -> error ("eval_text: " ^ (to_str expr)) in
+    | expr -> error loc "invalid text" expr in
   match car args with
   | Cons({ kind = Symbol("clear", _); loc = _ }, { kind = Cons({ kind = Bool v; loc = _ }, { kind = Nil; loc = _ }); loc = _ }) -> text v (cdr args)
   | _ -> text false args
 
-let eval_slot_set context _ args =
+let eval_slot_set context _ loc args =
   match args with
   | Cons({ kind = Symbol(typ, _); loc = _ }, { kind = Cons({ kind = Symbol(name, _); loc = _ }, { kind = Cons({ kind = expr; loc = _ }, _); loc = _ }); loc = _ }) ->
     Js_ast.assign typ name expr
     |> push_tag context "eval"
-  | e -> error (sprintf "invalid variable setting: %s" (to_str e))
+  | e -> error loc "invalid variable setting" e
 
-let eval_slot_ref _ args =
+let eval_slot_ref _ loc args =
   match args with
   | Cons({ kind = Symbol(typ, _); loc = _ }, { kind = Cons({ kind = Symbol(name, _); loc = _ }, _); loc = _ }) ->
     Embedded (Obj.repr [%bs.obj {
       _type = typ;
       name = name
     }])
-  | e -> error (sprintf "invalid variable reference: %s" (to_str e))
+  | e -> error loc "invalid variable reference" e
 
-let eval_layer _ args =
+let eval_layer _ loc args =
   let layer = Js.Dict.empty () in
   let rec inner = function
-  | Cons({ kind = Symbol(key, _); loc = _ }, { kind = xs; loc = _ }) ->
+  | Cons({ kind = Symbol(key, _); loc = _ }, { kind = xs; loc = l }) ->
     let value =
       match key, car xs with
       | ("name", String v) -> Obj.repr v
       | ("x", Number v)
       | ("y", Number v) -> Obj.repr v
-      | (_, e) -> error (sprintf "type error [%s]: %s" key (to_str e))
+      | (_, e) -> error l ("type error [" ^ key ^ "]") e
     in
       Js.Dict.set layer key value |> ignore;
       inner (cdr xs)
@@ -145,12 +148,12 @@ let eval_layer _ args =
     inner x;
     inner xs
   | Nil -> ()
-  | e -> error (sprintf "invalid layer option: %s" (to_str e))
+  | e -> error loc "invalid layer option" e
   in
     inner args;
     Embedded(Obj.repr layer)
 
-let eval_image context env args =
+let eval_image context env loc args =
   match car args, eval env (car (cdr args)) with
   | (String assetId, Embedded layer) ->
     [%bs.obj {
@@ -158,9 +161,9 @@ let eval_image context env args =
       layer = layer
     }]
     |> push_tag context "image"
-  | (e, _) -> error (sprintf "image tag requires asset id: %s" (to_str e))
+  | (e, _) -> error loc "image tag requires asset id" e
 
-let eval_if context env args =
+let eval_if context env loc args =
   match args with
   | Cons({ kind = cond; loc = _ }, { kind = Cons({ kind = expr1; loc = _ }, { kind = Cons(expr2, _); loc = _ }); loc = _ }) -> begin
     let current = !(context.scripts) in
@@ -182,9 +185,9 @@ let eval_if context env args =
     }]
     |> push_tag context "ifElse"
   end
-  | e -> error (sprintf "syntax error [if cond if-body else-body]: %s" (to_str e))
+  | e -> error loc "syntax error [if cond if-body else-body]" e
 
-let eval_cond context env args =
+let eval_cond context env loc args =
   let conditions = [||] in
   let rec inner = function
   | Cons({ kind = Cons({ kind = Symbol("else", _); loc = _ }, { kind = Cons({ kind = expr; loc = _ }, { kind = Nil; loc = _ }); loc = _ }); loc = _ }, { kind = Nil; loc = _ }) -> begin
@@ -203,7 +206,7 @@ let eval_cond context env args =
     |> ignore;
     inner xs
   end
-  | e -> error (sprintf "syntax error [cond (cond1 expr-1) ... (else expr-n)]:\n %s" (to_str e))
+  | e -> error loc "syntax error [cond (cond1 expr-1) ... (else expr-n)]" e
   in
     let current = !(context.scripts) in
     let e = inner args in
@@ -214,7 +217,7 @@ let eval_cond context env args =
     }]
     |> push_tag context "ifElse"
 
-let eval_ruby _ args =
+let eval_ruby _ loc args =
   let options = Js.Dict.empty () in
   let rec inner = function
     | Cons({ kind = Symbol(key, _); loc = _ }, { kind = xs; loc = _ }) ->
@@ -222,7 +225,7 @@ let eval_ruby _ args =
       match key, car xs with
       | ("rb", String v) -> v
       | ("rt", String v) -> v
-      | (_, e) -> error (sprintf "type error [%s]: %s" key (to_str e))
+      | (_, e) -> error loc ("type error [" ^ key ^ "]") e
     in
       Js.Dict.set options key value |> ignore;
       inner (cdr xs)
@@ -230,7 +233,7 @@ let eval_ruby _ args =
     x |> Ast.kind_of |> inner;
     xs |> Ast.kind_of |> inner
   | Nil -> ()
-  | e -> error ("invalid ruby option: " ^ (to_str e))
+  | e -> error loc "invalid ruby option" e
   in
     inner args;
     let rb = Js.Dict.unsafeGet options "rb" in
@@ -244,30 +247,30 @@ let eval_ruby _ args =
       )
     in Embedded (Obj.repr result)
 
-let eval_user_defined context _ args =
+let eval_user_defined context _ loc args =
   let layer = Js.Dict.empty () in
-  let rec inner name = function
-  | Cons({ kind = Symbol(key, _); loc = _ }, { kind = xs; loc = _ }) ->
+  let rec inner name loc = function
+  | Cons({ kind = Symbol(key, _); loc = _ }, { kind = xs; loc = l }) ->
     let value =
       match car xs with
       | Bool v -> Obj.repr v
       | String v -> Obj.repr v
       | Number v -> Obj.repr v
-      | e -> error (sprintf "type error [%s]: %s" key (to_str e))
+      | e -> error l ("type error [" ^ key ^ "]") e
     in
       Js.Dict.set layer key value |> ignore;
-      inner name (cdr xs)
-  | Cons(x, xs) ->
-    x |> Ast.kind_of |> inner name;
-    xs |> Ast.kind_of |> inner name
+      inner name loc (cdr xs)
+  | Cons({ kind = x; loc = l1 }, { kind = xs; loc = l2 }) ->
+    inner name l1 x;
+    inner name l2 xs
   | Nil -> ()
-  | e -> error (sprintf "invalid option in [%s]: %s" name (to_str e))
+  | e -> error loc ("invalid option in [" ^ name ^ "]") e
   in
     match args with
-    | Cons({ kind = Symbol(name, _); loc = _ }, { kind = xs; loc = _ }) ->
-      inner name xs;
+    | Cons({ kind = Symbol(name, _); loc = _ }, { kind = xs; loc = l }) ->
+      inner name l xs;
       push_tag context name layer
-    | e -> error (sprintf "invalid operation: %s" (to_str e))
+    | e -> error loc "invalid operation" e
 
 let init_env context =
   let env = ref [] in

@@ -9,7 +9,7 @@ type t =
   | InterpolatedString of (t Ast.t) array
   | Embedded of Obj.t
   | Cons of t Ast.t * t Ast.t
-  | Primitive of (((t Env.environment) list) ref -> t -> t)
+  | Primitive of (((t Env.environment) list) ref -> Location.t -> t -> t)
 
 let rec to_str x =
   match x with
