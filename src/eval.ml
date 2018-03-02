@@ -165,7 +165,7 @@ let eval_image context env args =
     |> push_tag context "image"
   | (e, _) -> error (sprintf "image tag requires asset id: %s" (to_str e))
 
-and eval_if context env args =
+let eval_if context env args =
   match args with
   | Cons({ kind = cond; loc = _ }, { kind = Cons({ kind = expr1; loc = _ }, { kind = Cons(expr2, _); loc = _ }); loc = _ }) -> begin
     let current = !(context.scripts) in
