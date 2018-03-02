@@ -15,12 +15,12 @@ let rec eval env expr =
   | InterpolatedString _
   | Embedded _
   | Primitive _ -> expr
-  | Symbol s -> begin
+  | Symbol(s, _) -> begin
     match Env.lookup !env s with
     | Some p -> p
     | None -> Primitive(fun e args ->
       match Env.lookup !e user_defined_env_name with
-      | Some (Primitive proc) -> proc e (Cons({ kind = Symbol s; loc = Location.zero }, { kind = args; loc = Location.zero }))
+      | Some (Primitive proc) -> proc e (Cons({ kind = expr; loc = Location.zero }, { kind = args; loc = Location.zero }))
       | Some other -> error ("uneval app: " ^ (to_str other))
       | None -> error (sprintf "not found in env: %s" s)
     )
@@ -112,12 +112,12 @@ let eval_text context env args =
     end
     | expr -> error ("eval_text: " ^ (to_str expr)) in
   match car args with
-  | Cons({ kind = Symbol "clear"; loc = _ }, { kind = Cons({ kind = Bool v; loc = _ }, { kind = Nil; loc = _ }); loc = _ }) -> text v (cdr args)
+  | Cons({ kind = Symbol("clear", _); loc = _ }, { kind = Cons({ kind = Bool v; loc = _ }, { kind = Nil; loc = _ }); loc = _ }) -> text v (cdr args)
   | _ -> text false args
 
 let eval_slot_set context _ args =
   match args with
-  | Cons({ kind = Symbol typ; loc = _ }, { kind = Cons({ kind = Symbol name; loc = _ }, { kind = Cons({ kind = expr; loc = _ }, _); loc = _ }); loc = _ }) ->
+  | Cons({ kind = Symbol(typ, _); loc = _ }, { kind = Cons({ kind = Symbol(name, _); loc = _ }, { kind = Cons({ kind = expr; loc = _ }, _); loc = _ }); loc = _ }) ->
     Js_ast.assign typ name expr
     |> Obj.repr
     |> push_tag context "eval"
@@ -125,7 +125,7 @@ let eval_slot_set context _ args =
 
 let eval_slot_ref _ args =
   match args with
-  | Cons({ kind = Symbol typ; loc = _ }, { kind = Cons({ kind = Symbol name; loc = _ }, _); loc = _ }) ->
+  | Cons({ kind = Symbol(typ, _); loc = _ }, { kind = Cons({ kind = Symbol(name, _); loc = _ }, _); loc = _ }) ->
     Embedded (Obj.repr [%bs.obj {
       _type = typ;
       name = name
@@ -135,7 +135,7 @@ let eval_slot_ref _ args =
 let eval_layer _ args =
   let layer = Js.Dict.empty () in
   let rec inner = function
-  | Cons({ kind = Symbol key; loc = _ }, { kind = xs; loc = _ }) ->
+  | Cons({ kind = Symbol(key, _); loc = _ }, { kind = xs; loc = _ }) ->
     let value =
       match key, car xs with
       | ("name", String v) -> Obj.repr v
@@ -193,7 +193,7 @@ and eval_if context env args =
 let eval_cond context env args =
   let conditions = [||] in
   let rec inner = function
-  | Cons({ kind = Cons({ kind = Symbol "else"; loc = _ }, { kind = Cons({ kind = expr; loc = _ }, { kind = Nil; loc = _ }); loc = _ }); loc = _ }, { kind = Nil; loc = _ }) -> begin
+  | Cons({ kind = Cons({ kind = Symbol("else", _); loc = _ }, { kind = Cons({ kind = expr; loc = _ }, { kind = Nil; loc = _ }); loc = _ }); loc = _ }, { kind = Nil; loc = _ }) -> begin
     context.scripts := [||];
     eval env expr |> ignore;
     !(context.scripts)
@@ -224,7 +224,7 @@ let eval_cond context env args =
 let eval_ruby _ args =
   let options = Js.Dict.empty () in
   let rec inner = function
-    | Cons({ kind = Symbol key; loc = _ }, { kind = xs; loc = _ }) ->
+    | Cons({ kind = Symbol(key, _); loc = _ }, { kind = xs; loc = _ }) ->
     let value =
       match key, car xs with
       | ("rb", String v) -> v
@@ -254,7 +254,7 @@ let eval_ruby _ args =
 let eval_user_defined context _ args =
   let layer = Js.Dict.empty () in
   let rec inner name = function
-  | Cons({ kind = Symbol key; loc = _ }, { kind = xs; loc = _ }) ->
+  | Cons({ kind = Symbol(key, _); loc = _ }, { kind = xs; loc = _ }) ->
     let value =
       match car xs with
       | Bool v -> Obj.repr v
@@ -271,7 +271,7 @@ let eval_user_defined context _ args =
   | e -> error (sprintf "invalid option in [%s]: %s" name (to_str e))
   in
     match args with
-    | Cons({ kind = Symbol name; loc = _ }, { kind = xs; loc = _ }) ->
+    | Cons({ kind = Symbol(name, _); loc = _ }, { kind = xs; loc = _ }) ->
       inner name xs;
       Obj.repr layer
       |> push_tag context name

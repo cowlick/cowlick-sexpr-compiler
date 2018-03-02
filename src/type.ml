@@ -3,7 +3,7 @@ open Printf
 type t =
   | Nil
   | Number of float
-  | Symbol of string
+  | Symbol of string * Location.t
   | Bool of bool
   | String of string
   | InterpolatedString of (t Ast.t) array
@@ -15,7 +15,7 @@ let rec to_str x =
   match x with
     Nil -> "nil"
   | Number v -> sprintf "number %f" v
-  | Symbol s -> sprintf "symbol %s" s
+  | Symbol(s, _) -> sprintf "symbol %s" s
   | Bool v -> sprintf "bool %s" (if v then "#t" else "#f")
   | String v -> sprintf "string \"%s\"" v
   | InterpolatedString exprs ->

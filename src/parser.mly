@@ -37,11 +37,14 @@ entry:
 expr:
     primary_value { make $1 $startpos $endpos }
   | interpolated_string { $1 }
+  | SYMBOL {
+    let loc = to_loc $startpos $endpos in
+    Ast.{ kind = Type.Symbol($1, loc); loc }
+  }
   | LPAREN list RPAREN { $2 }
 
 primary_value:
     NUMBER { Type.Number $1 }
-  | SYMBOL { Type.Symbol $1 }
   | TRUE { Type.Bool true }
   | FALSE { Type.Bool false }
   | STRING { Type.String $1 }

@@ -35,7 +35,7 @@ let rec translate expr =
   | Number v -> number_ast v
   | Bool  v -> bool_ast v
   | String v -> str_ast v
-  | Cons({ kind = Symbol s; loc = _ }, { kind = args; loc = _ }) as exprs -> begin
+  | Cons({ kind = Symbol(s, _); loc = _ }, { kind = args; loc = _ }) as exprs -> begin
     match Env.lookup !env s with
     | Some f -> f args
     | None -> begin
@@ -171,7 +171,7 @@ let bang expr =
 let slot_set expr =
   let open Type in
   match expr with
-  | Cons({ kind = Symbol typ; loc = _ }, { kind = Cons({ kind = Symbol name; loc = _ }, { kind = Cons({ kind = e; loc = _ }, _); loc = _ }); loc = _ }) ->
+  | Cons({ kind = Symbol(typ, _); loc = _ }, { kind = Cons({ kind = Symbol(name, _); loc = _ }, { kind = Cons({ kind = e; loc = _ }, _); loc = _ }); loc = _ }) ->
     assign typ name e
     |> Obj.repr
   | e -> error (sprintf "invalid variable setting: %s" (to_str e))
@@ -179,7 +179,7 @@ let slot_set expr =
 let slot_ref expr =
   let open Type in
   match expr with
-  | Cons({ kind = Symbol typ; loc = _ }, { kind = Cons({ kind = Symbol name; loc = _ }, _); loc = _ }) ->
+  | Cons({ kind = Symbol(typ, _); loc = _ }, { kind = Cons({ kind = Symbol(name, _); loc = _ }, _); loc = _ }) ->
     member (member (identifier "variables") (identifier typ)) (identifier name)
     |> Obj.repr
   | e -> error (sprintf "invalid variable reference: %s" (to_str e));;
