@@ -66,11 +66,11 @@ let eval_frame context env args =
     |> ignore;
     Nil
 
-let push_tag context name (data: Obj.t) =
+let push_tag context name (data: 'a) =
   !(context.scripts)
   |> Js.Array.push ([%bs.obj {
     tag = name;
-    data = data
+    data = Obj.repr data
   }])
   |> ignore;
   Nil
@@ -81,7 +81,6 @@ let eval_text context env args =
       [%bs.obj {
         name = "choice"
       }]
-      |> Obj.repr
       |> push_tag context "removeLayer"
       |> ignore
   in let text clear = function
@@ -91,7 +90,6 @@ let eval_text context env args =
         clear = Js.Boolean.to_js_boolean clear;
         values = [|value|]
       }]
-      |> Obj.repr
       |> push_tag context "text"
     end
     | Cons({ kind = InterpolatedString exprs; loc = _ }, {kind = Nil; loc = _ }) -> begin
@@ -107,7 +105,6 @@ let eval_text context env args =
           ) exprs []
           |> Array.of_list
       }]
-      |> Obj.repr
       |> push_tag context "text"
     end
     | expr -> error ("eval_text: " ^ (to_str expr)) in
@@ -119,7 +116,6 @@ let eval_slot_set context _ args =
   match args with
   | Cons({ kind = Symbol(typ, _); loc = _ }, { kind = Cons({ kind = Symbol(name, _); loc = _ }, { kind = Cons({ kind = expr; loc = _ }, _); loc = _ }); loc = _ }) ->
     Js_ast.assign typ name expr
-    |> Obj.repr
     |> push_tag context "eval"
   | e -> error (sprintf "invalid variable setting: %s" (to_str e))
 
@@ -161,7 +157,6 @@ let eval_image context env args =
       assetId = assetId;
       layer = layer
     }]
-    |> Obj.repr
     |> push_tag context "image"
   | (e, _) -> error (sprintf "image tag requires asset id: %s" (to_str e))
 
@@ -185,7 +180,6 @@ let eval_if context env args =
       |];
       elseBody = e2
     }]
-    |> Obj.repr
     |> push_tag context "ifElse"
   end
   | e -> error (sprintf "syntax error [if cond if-body else-body]: %s" (to_str e))
@@ -218,7 +212,6 @@ let eval_cond context env args =
       conditions = conditions;
       elseBody = e
     }]
-    |> Obj.repr
     |> push_tag context "ifElse"
 
 let eval_ruby _ args =
@@ -273,8 +266,7 @@ let eval_user_defined context _ args =
     match args with
     | Cons({ kind = Symbol(name, _); loc = _ }, { kind = xs; loc = _ }) ->
       inner name xs;
-      Obj.repr layer
-      |> push_tag context name
+      push_tag context name layer
     | e -> error (sprintf "invalid operation: %s" (to_str e))
 
 let init_env context =
