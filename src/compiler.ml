@@ -30,16 +30,17 @@ let parse_scene target =
 
 let parse input =
   let baseDir = Node.Path.dirname input in
-  let rec inner scenario = function
-  | [||] -> scenario
-  | xs -> begin
-    let result = Js.Array.pop xs |> Js.Option.getExn |> Filename.concat baseDir |> parse_scene in
-    Js.Array.push result##scene scenario |> ignore;
-    result##dependencies
-    |> Js.Array.filter (fun x -> not (Js.Array.includes x xs) && not (Js.Array.some (fun s -> s##label = filename x) scenario))
-    |> Js.Array.concat xs
-    |> inner scenario
-  end
+  let rec inner scenario files =
+    match Js.Array.pop files with
+    | None -> scenario
+    | Some target -> begin
+      let result = target |> Filename.concat baseDir |> parse_scene in
+      Js.Array.push result##scene scenario |> ignore;
+      result##dependencies
+      |> Js.Array.filter (fun x -> not (Js.Array.includes x files) && not (Js.Array.some (fun s -> s##label = filename x) scenario))
+      |> Js.Array.concat files
+      |> inner scenario
+    end
   in inner [||] [|input|]
 
 let compile outDir input =
