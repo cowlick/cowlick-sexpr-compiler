@@ -6,6 +6,7 @@ type script = <
 > Js.t
 
 type frame = <
+  label: string Js.Nullable.t;
   scripts: script array
 > Js.t
 

@@ -1,0 +1,33 @@
+[
+  {
+    "scripts": [
+      {
+        "tag": "jump",
+        "data": {
+          "scene": "content"
+        }
+      },
+      {
+        "tag": "jump",
+        "data": {
+          "scene": "content",
+          "frame": "test"
+        }
+      }
+    ]
+  },
+  {
+    "label": "test",
+    "scripts": [
+      {
+        "tag": "text",
+        "data": {
+          "clear": false,
+          "values": [
+            "テスト"
+          ]
+        }
+      }
+    ]
+  }
+]

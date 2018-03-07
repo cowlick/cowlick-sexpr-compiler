@@ -31,7 +31,7 @@ let rec eval env expr =
   | Cons({ kind = e1; loc = l1 }, { kind = e2; loc = l2 }) -> begin
     match eval env e1 with
     | Primitive proc -> proc env l2 e2
-    | Nil -> Nil
+    | Nil -> eval env e2
     | other -> error l1 "uneval app" other
   end
 
@@ -41,12 +41,14 @@ type script = <
 > Js.t
 
 type frame = <
+  label: string Js.Nullable.t;
   scripts: script array
 > Js.t
 
 type context = {
   frames: frame array;
-  scripts: (script array) ref
+  scripts: (script array) ref;
+  dependencies: string array
 }
 
 type eval_result = {
@@ -60,14 +62,25 @@ let eval_frame context env loc args =
     eval env x |> ignore;
     inner xs |> ignore;
   | Nil -> ()
-  | e -> error loc "invalid frame arguments" e
-  in
-    context.scripts := [||];
-    inner args;
-    context.frames
-    |> Js.Array.push ([%bs.obj { scripts = !(context.scripts) } ])
-    |> ignore;
-    Nil
+  | e -> error loc "invalid frame arguments" e in
+  let label, xs =
+    match args with
+    | Cons({ kind = x; loc = _ }, { kind = xs; loc = _ }) -> begin
+      match x with
+      | Cons({ kind = Symbol("label", _); loc = _ }, { kind = Cons({ kind = (Symbol(v, _) | String v); loc = _}, { kind = Nil; loc = _ }); loc = _ }) ->
+        (Js.Nullable.return v, xs)
+      | _ -> (Js.Nullable.undefined, args)
+    end
+    | _ -> (Js.Nullable.undefined, args) in
+  context.scripts := [||];
+  inner xs;
+  context.frames
+  |> Js.Array.push ([%bs.obj {
+    label;
+    scripts = !(context.scripts)
+  }])
+  |> ignore;
+  Nil
 
 let push_tag context name (data: 'a) =
   !(context.scripts)
@@ -247,6 +260,30 @@ let eval_ruby _ loc args =
       )
     in Embedded (Obj.repr result)
 
+let eval_jump (context: context) _ loc args =
+  let target = Js.Dict.empty () in
+  let rec inner loc = function
+  | Cons({ kind = Symbol(key, _); loc = _ }, { kind = xs; loc = l }) ->
+    let k, v =
+      match key, car xs with
+      | ("scene", (String v | Symbol(v, _))) -> begin
+        Js.Array.push v context.dependencies |> ignore;
+        (key, Obj.repr v)
+      end
+      | ("label", (String v | Symbol(v, _))) -> ("frame", Obj.repr v)
+      | (_, e) -> error l ("unknwon argument [" ^ key ^ "]") e
+    in
+      Js.Dict.set target k v |> ignore;
+      inner loc (cdr xs)
+  | Cons({ kind = x; loc = l1 }, { kind = xs; loc = l2 }) ->
+    inner l1 x;
+    inner l2 xs
+  | Nil -> ()
+  | e -> error loc ("invalid jump option") e
+  in
+    inner loc args;
+    push_tag context "jump" target
+
 let eval_user_defined context _ loc args =
   let layer = Js.Dict.empty () in
   let rec inner name loc = function
@@ -287,6 +324,7 @@ let init_env context =
   add_primitive "if" (eval_if context);
   add_primitive "cond" (eval_cond context);
   add_primitive "ruby" eval_ruby;
+  add_primitive "jump" (eval_jump context);
   add_primitive user_defined_env_name (eval_user_defined context);
 
   env
@@ -294,7 +332,8 @@ let init_env context =
 let eval_scene ast =
   let context = {
     frames = [||];
-    scripts = ref [||]
+    scripts = ref [||];
+    dependencies = [||]
   } in
   let _ = eval (init_env context) (Ast.kind_of ast) in
   {
