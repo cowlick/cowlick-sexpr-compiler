@@ -336,6 +336,6 @@ let eval_scene ast =
   let _ = eval (init_env context) (Ast.kind_of ast) in
   {
     frames = context.frames;
-    dependencies = [||]
+    dependencies = context.dependencies
   }
 
