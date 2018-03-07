@@ -151,8 +151,7 @@ let eval_layer _ loc args =
     let value =
       match key, car xs with
       | ("name", String v) -> Obj.repr v
-      | ("x", Number v)
-      | ("y", Number v) -> Obj.repr v
+      | (("x" | "y"), Number v) -> Obj.repr v
       | (_, e) -> error l ("type error [" ^ key ^ "]") e
     in
       Js.Dict.set layer key value |> ignore;
@@ -236,8 +235,7 @@ let eval_ruby _ loc args =
     | Cons({ kind = Symbol(key, _); loc = _ }, { kind = xs; loc = _ }) ->
     let value =
       match key, car xs with
-      | ("rb", String v) -> v
-      | ("rt", String v) -> v
+      | (("rb" | "rt"), String v) -> v
       | (_, e) -> error loc ("type error [" ^ key ^ "]") e
     in
       Js.Dict.set options key value |> ignore;
