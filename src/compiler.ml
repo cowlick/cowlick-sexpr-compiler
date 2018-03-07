@@ -34,14 +34,14 @@ let parse input =
     match Js.Array.pop files with
     | None -> scenario
     | Some target -> begin
-      let result = target |> Filename.concat baseDir |> parse_scene in
+      let result = Node.Path.join [| baseDir; target ^ ".scm" |] |> parse_scene in
       Js.Array.push result##scene scenario |> ignore;
       result##dependencies
       |> Js.Array.filter (fun x -> not (Js.Array.includes x files) && not (Js.Array.some (fun s -> s##label = filename x) scenario))
       |> Js.Array.concat files
       |> inner scenario
     end
-  in inner [||] [|input|]
+  in inner [||] [| filename input |]
 
 let compile outDir input =
   let ast = parse input in
@@ -50,8 +50,7 @@ let compile outDir input =
     try mkdirSync outDir
     with _ -> Js.log("output directory already exists: " ^ outDir)
   in
-  let out = Node.Path.join [| outDir; "scenario.js" |] in
   Array.map (fun s -> s##write outDir) result##scripts
-  |> Array.append [| generate out result##scenario |]
+  |> Array.append [| generate outDir result##scenario |]
   |> Js.Promise.all
 
