@@ -11,18 +11,21 @@ type parse_result = {
   dependencies: string array
 }
 
-external mkdirSync : string -> unit = "" [@@bs.val] [@@bs.module "fs"]
+external mkdirSync : string -> unit = "" [@@bs.module "fs"]
+external extname : string -> string = "" [@@bs.module "path"]
 
-let parse_scene target =
+let parse_scene baseDir target =
+  let relative = Node.Path.dirname target in
+  let path = Node.Path.join [| baseDir; target |] in
   let result =
-    target
+    (if extname path = "" then path ^ ".scm" else path)
     |> Node.Fs.readFileAsUtf8Sync
     |> Lexing.from_string
     |> Parser.entry Lexer.token
-    |> eval_scene
+    |> eval_scene ~base:baseDir ~relative:relative
   in {
     scene = [%bs.obj {
-      label = filename target;
+      label = Node.Path.join [| relative; filename target |];
       frames = result.frames
     }];
     dependencies = result.dependencies
@@ -34,10 +37,10 @@ let parse input =
     match Js.Array.pop files with
     | None -> scenario
     | Some target -> begin
-      let result = Node.Path.join [| baseDir; target ^ ".scm" |] |> parse_scene in
+      let result = parse_scene baseDir target in
       Js.Array.push result.scene scenario |> ignore;
       result.dependencies
-      |> Js.Array.filter (fun x -> not (Js.Array.includes x files) && not (Js.Array.some (fun s -> s##label = filename x) scenario))
+      |> Js.Array.filter (fun x -> not (Js.Array.includes x files || Js.Array.some (fun s -> s##label = x) scenario))
       |> Js.Array.concat files
       |> inner scenario
     end

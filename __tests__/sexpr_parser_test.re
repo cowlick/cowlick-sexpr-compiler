@@ -14,7 +14,7 @@ describe("SExprParser", () => {
         |> Js.String.substrAtMost(~from = 0, ~length = String.length(filePath) - String.length("/content.scm"))
         |> Js.String.substr(~from = String.length(path));
       test(filePath, () => {
-        let actual = Compiler.parse_scene(filePath);
+        let actual = Compiler.parse_scene(Node.Path.dirname(filePath), Node.Path.basename(filePath));
         let frames =
           actual.scene##frames
           |> Obj.magic

@@ -15,5 +15,5 @@ type eval_result = {
   dependencies: string array
 }
 
-val eval_scene: Type.t Ast.t -> eval_result
+val eval_scene: base:string -> relative:string -> Type.t Ast.t -> eval_result
 

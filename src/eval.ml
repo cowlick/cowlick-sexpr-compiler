@@ -48,7 +48,9 @@ type frame = <
 type context = {
   frames: frame array;
   scripts: (script array) ref;
-  dependencies: string array
+  dependencies: string array;
+  base: string;
+  relative: string
 }
 
 type eval_result = {
@@ -258,6 +260,12 @@ let eval_ruby _ loc args =
       )
     in Embedded (Obj.repr result)
 
+let path_to_scene_name context scene =
+  let dir =
+    Node.Path.relative ~from:context.base ~to_:(Node.Path.join [| context.base; context.relative; scene |]) ()
+    |> Node.Path.dirname
+  in Node.Path.join [| dir; Analyzer.filename scene |]
+
 let eval_jump (context: context) _ loc args =
   let target = Js.Dict.empty () in
   let rec inner loc = function
@@ -265,8 +273,9 @@ let eval_jump (context: context) _ loc args =
     let k, v =
       match key, car xs with
       | ("scene", (String v | Symbol(v, _))) -> begin
-        Js.Array.push v context.dependencies |> ignore;
-        (key, Obj.repr v)
+        let name = path_to_scene_name context v in
+        Js.Array.push name context.dependencies |> ignore;
+        (key, Obj.repr name)
       end
       | ("label", (String v | Symbol(v, _))) -> ("frame", Obj.repr v)
       | (_, e) -> error l ("unknwon argument [" ^ key ^ "]") e
@@ -327,11 +336,13 @@ let init_env context =
 
   env
 
-let eval_scene ast =
+let eval_scene ~base ~relative ast =
   let context = {
     frames = [||];
     scripts = ref [||];
-    dependencies = [||]
+    dependencies = [||];
+    base;
+    relative
   } in
   let _ = eval (init_env context) (Ast.kind_of ast) in
   {
