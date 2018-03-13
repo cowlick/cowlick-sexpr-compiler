@@ -6,10 +6,10 @@ type scene = <
   frames: frame array
 > Js.t
 
-type parse_result = <
+type parse_result = {
   scene: scene;
   dependencies: string array
-> Js.t
+}
 
 external mkdirSync : string -> unit = "" [@@bs.val] [@@bs.module "fs"]
 
@@ -20,13 +20,13 @@ let parse_scene target =
     |> Lexing.from_string
     |> Parser.entry Lexer.token
     |> eval_scene
-  in [%bs.obj {
+  in {
     scene = [%bs.obj {
       label = filename target;
       frames = result.frames
     }];
     dependencies = result.dependencies
-  }]
+  }
 
 let parse input =
   let baseDir = Node.Path.dirname input in
@@ -35,8 +35,8 @@ let parse input =
     | None -> scenario
     | Some target -> begin
       let result = Node.Path.join [| baseDir; target ^ ".scm" |] |> parse_scene in
-      Js.Array.push result##scene scenario |> ignore;
-      result##dependencies
+      Js.Array.push result.scene scenario |> ignore;
+      result.dependencies
       |> Js.Array.filter (fun x -> not (Js.Array.includes x files) && not (Js.Array.some (fun s -> s##label = filename x) scenario))
       |> Js.Array.concat files
       |> inner scenario
