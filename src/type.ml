@@ -7,7 +7,7 @@ type t =
   | Bool of bool
   | String of string
   | InterpolatedString of (t Ast.t) array
-  | Embedded of Obj.t
+  | Embedded of Script.data
   | Cons of t Ast.t * t Ast.t
   | Primitive of (((t Env.environment) list) ref -> Location.t -> t -> t)
 

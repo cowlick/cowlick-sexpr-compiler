@@ -1,7 +1,7 @@
 open Jest;
 open Expect;
 
-describe("Js_ast", () => {
+describe("Translater", () => {
 
   describe({j|S式をJavaScript ASTに変換できる|j}, () => {
 
@@ -20,7 +20,7 @@ describe("Js_ast", () => {
           |> Lexing.from_string
           |> Parser.entry (Lexer.token)
           |> Ast.kind_of
-          |> Js_ast.translate
+          |> Translater.translate
           |> Obj.magic
           |> Js.Json.stringify
           |> Js.Json.parseExn;

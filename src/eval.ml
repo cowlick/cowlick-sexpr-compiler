@@ -35,19 +35,14 @@ let rec eval env expr =
     | other -> error l1 "uneval app" other
   end
 
-type script = <
-  tag: string;
-  data: Obj.t
-> Js.t
-
 type frame = <
   label: string Js.Nullable.t;
-  scripts: script array
+  scripts: Script.t array
 > Js.t
 
 type context = {
   frames: frame array;
-  scripts: (script array) ref;
+  scripts: (Script.t array) ref;
   dependencies: string array;
   base: string;
   relative: string
@@ -88,7 +83,7 @@ let push_tag context name (data: 'a) =
   !(context.scripts)
   |> Js.Array.push ([%bs.obj {
     tag = name;
-    data = Obj.repr data
+    data = Obj.magic data
   }])
   |> ignore;
   Nil
@@ -117,7 +112,7 @@ let eval_text context env loc args =
         values =
           Array.fold_right (fun ast acc ->
             match ast |> Ast.kind_of |> eval env with
-            | String s -> if s = "" then acc else Obj.repr s :: acc
+            | String s -> if s = "" then acc else Obj.magic s :: acc
             | Embedded v -> v :: acc
             | e -> error (Ast.loc_of ast) "invalid interpolated string" e
           ) exprs []
@@ -133,14 +128,14 @@ let eval_text context env loc args =
 let eval_slot_set context _ loc args =
   match args with
   | Cons({ kind = Symbol(typ, _); loc = _ }, { kind = Cons({ kind = Symbol(name, _); loc = _ }, { kind = Cons({ kind = expr; loc = _ }, _); loc = _ }); loc = _ }) ->
-    Js_ast.assign typ name expr
+    Translater.assign typ name expr
     |> push_tag context "eval"
   | e -> error loc "invalid variable setting" e
 
 let eval_slot_ref _ loc args =
   match args with
   | Cons({ kind = Symbol(typ, _); loc = _ }, { kind = Cons({ kind = Symbol(name, _); loc = _ }, _); loc = _ }) ->
-    Embedded (Obj.repr [%bs.obj {
+    Embedded (Obj.magic [%bs.obj {
       _type = typ;
       name = name
     }])
@@ -150,10 +145,10 @@ let eval_layer _ loc args =
   let layer = Js.Dict.empty () in
   let rec inner = function
   | Cons({ kind = Symbol(key, _); loc = _ }, { kind = xs; loc = l }) ->
-    let value =
+    let value: Script.data =
       match key, car xs with
-      | ("name", String v) -> Obj.repr v
-      | (("x" | "y"), Number v) -> Obj.repr v
+      | ("name", String v) -> Obj.magic v
+      | (("x" | "y"), Number v) -> Obj.magic v
       | (_, e) -> error l ("type error [" ^ key ^ "]") e
     in
       Js.Dict.set layer key value |> ignore;
@@ -165,7 +160,7 @@ let eval_layer _ loc args =
   | e -> error loc "invalid layer option" e
   in
     inner args;
-    Embedded(Obj.repr layer)
+    Embedded (Obj.magic layer)
 
 let eval_image context env loc args =
   match car args, eval env (car (cdr args)) with
@@ -191,7 +186,7 @@ let eval_if context env loc args =
     [%bs.obj {
       conditions = [|
         {
-          expression = Js_ast.return_body cond;
+          expression = Translater.return_body cond;
           scripts = e1
         }
       |];
@@ -214,7 +209,7 @@ let eval_cond context env loc args =
     eval env expr |> ignore;
     conditions
     |> Js.Array.push [%bs.obj {
-      expression = Js_ast.return_body pred;
+      expression = Translater.return_body pred;
       scripts = !(context.scripts)
     }]
     |> ignore;
@@ -258,7 +253,7 @@ let eval_ruby _ loc args =
           value = Ruby.to_json v
         }]
       )
-    in Embedded (Obj.repr result)
+    in Embedded (Obj.magic result)
 
 let path_to_scene_name context scene =
   let dir =
@@ -275,9 +270,9 @@ let eval_jump (context: context) _ loc args =
       | ("scene", (String v | Symbol(v, _))) -> begin
         let name = path_to_scene_name context v in
         Js.Array.push name context.dependencies |> ignore;
-        (key, Obj.repr name)
+        (key, name)
       end
-      | ("label", (String v | Symbol(v, _))) -> ("frame", Obj.repr v)
+      | ("label", (String v | Symbol(v, _))) -> ("frame", v)
       | (_, e) -> error l ("unknwon argument [" ^ key ^ "]") e
     in
       Js.Dict.set target k v |> ignore;
@@ -295,11 +290,11 @@ let eval_user_defined context _ loc args =
   let layer = Js.Dict.empty () in
   let rec inner name loc = function
   | Cons({ kind = Symbol(key, _); loc = _ }, { kind = xs; loc = l }) ->
-    let value =
+    let value: Script.data =
       match car xs with
-      | Bool v -> Obj.repr v
-      | String v -> Obj.repr v
-      | Number v -> Obj.repr v
+      | Bool v -> Obj.magic v
+      | String v -> Obj.magic v
+      | Number v -> Obj.magic v
       | e -> error l ("type error [" ^ key ^ "]") e
     in
       Js.Dict.set layer key value |> ignore;

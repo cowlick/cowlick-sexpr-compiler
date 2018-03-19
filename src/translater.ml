@@ -3,31 +3,29 @@ open Printf
 exception Translate_error of string
 let error message = raise (Translate_error message)
 
-let literal value raw =
-  [%bs.obj {
+let literal value raw : Estree.t =
+  Obj.magic [%bs.obj {
     _type = "Literal";
-    value = value;
-    raw = raw
+    value;
+    raw
   }]
-  |> Obj.repr
 
 let number_ast value =
-  literal (Obj.repr value) (sprintf "%f" value)
+  literal value (sprintf "%f" value)
 
 let bool_ast value =
-  literal (Obj.repr (Js.Boolean.to_js_boolean value)) (sprintf "%b" value)
+  literal (Js.Boolean.to_js_boolean value) (sprintf "%b" value)
 
 let str_ast str =
-  literal (Obj.repr str) (sprintf "\"%s\"" str)
+  literal str (sprintf "\"%s\"" str)
 
-let identifier name =
-  [%bs.obj {
+let identifier name : Estree.t =
+  Obj.magic [%bs.obj {
     _type = "Identifier";
     name = name
   }]
-  |> Obj.repr
 
-let env: (((Type.t -> Obj.t) Env.environment) list) ref = ref []
+let env: (((Type.t -> Estree.t) Env.environment) list) ref = ref []
 
 let rec translate expr =
   let open Type in
@@ -47,46 +45,43 @@ let rec translate expr =
   end
   | expr -> error ("not implemented: " ^ (to_str expr))
 
-and call name exprs =
+and call name exprs : Estree.t =
   let open Type in
   let rec inner acc = function
   | Cons({ kind = x; loc = _ }, { kind = xs; loc = _ }) -> inner (translate x :: acc) xs
   | Nil -> List.rev acc
   | expr -> translate expr :: acc |> List.rev
-  in [%bs.obj {
+  in Obj.magic [%bs.obj {
     _type = "CallExpression";
     callee = identifier name;
     arguments = inner [] exprs |> Array.of_list
   }]
-  |> Obj.repr
 
-let unary operator arg =
-  [%bs.obj {
+let unary operator arg : Estree.t =
+  Obj.magic [%bs.obj {
     _type = "UnaryExpression";
     operator = operator;
     argument = arg
   }]
-  |> Obj.repr
 
-let binary operator left right =
-  [%bs.obj {
+let binary operator left right : Estree.t =
+  Obj.magic [%bs.obj {
     _type = "BinaryExpression";
     operator = operator;
     left = left;
     right = right
   }]
-  |> Obj.repr
 
 let member receiver property =
-  [%bs.obj {
+  Obj.magic [%bs.obj {
     _type = "MemberExpression";
     _object = receiver;
-    property = property;
+    property;
     computed = Js.false_
   }]
 
-let assign typ name expr =
-  [%bs.obj {
+let assign typ name expr : Estree.t =
+  Obj.magic [%bs.obj {
     _type = "Program";
     body = [|
       {
@@ -101,10 +96,9 @@ let assign typ name expr =
     |];
     sourceType = "script"
   }]
-  |> Obj.repr
 
-let return_body expr =
-  [%bs.obj {
+let return_body expr : Estree.t =
+  Obj.magic [%bs.obj {
     _type = "Program";
     body = [|
       {
@@ -114,7 +108,6 @@ let return_body expr =
     |];
     sourceType = "script"
   }]
-  |> Obj.repr
 
 let arithmetic operator unary identity expr =
   let open Type in
@@ -173,7 +166,6 @@ let slot_set expr =
   match expr with
   | Cons({ kind = Symbol(typ, _); loc = _ }, { kind = Cons({ kind = Symbol(name, _); loc = _ }, { kind = Cons({ kind = e; loc = _ }, _); loc = _ }); loc = _ }) ->
     assign typ name e
-    |> Obj.repr
   | e -> error (sprintf "invalid variable setting: %s" (to_str e))
 
 let slot_ref expr =
@@ -181,7 +173,6 @@ let slot_ref expr =
   match expr with
   | Cons({ kind = Symbol(typ, _); loc = _ }, { kind = Cons({ kind = Symbol(name, _); loc = _ }, _); loc = _ }) ->
     member (member (identifier "variables") (identifier typ)) (identifier name)
-    |> Obj.repr
   | e -> error (sprintf "invalid variable reference: %s" (to_str e));;
 
 Env.set env "+" (arithmetic_unary "+" (Some (number_ast 0.)));;
@@ -204,4 +195,3 @@ Env.set env "slot-set!" slot_set;;
 Env.set env "set!" slot_set;;
 Env.set env "slot-ref" slot_ref;;
 Env.set env "ref" slot_ref;;
-

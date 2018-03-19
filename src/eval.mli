@@ -1,13 +1,8 @@
 exception Eval_error of string
 
-type script = <
-  tag: string;
-  data: Obj.t
-> Js.t
-
 type frame = <
   label: string Js.Nullable.t;
-  scripts: script array
+  scripts: Script.t array
 > Js.t
 
 type eval_result = {
