@@ -1,13 +1,8 @@
 open Analyzer
 open Eval
 
-type scene = <
-  label: string;
-  frames: frame array
-> Js.t
-
 type parse_result = {
-  scene: scene;
+  scene: Core.scene;
   dependencies: string array
 }
 
@@ -48,7 +43,7 @@ let parse input =
 
 let compile outDir input =
   let ast = parse input in
-  let result = analyze (Obj.repr ast) in
+  let result = analyze ast in
   let () =
     try mkdirSync outDir
     with _ -> Js.log("output directory already exists: " ^ outDir)

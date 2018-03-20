@@ -35,13 +35,8 @@ let rec eval env expr =
     | other -> error l1 "uneval app" other
   end
 
-type frame = <
-  label: string Js.Nullable.t;
-  scripts: Script.t array
-> Js.t
-
 type context = {
-  frames: frame array;
+  frames: Core.frame array;
   scripts: (Script.t array) ref;
   dependencies: string array;
   base: string;
@@ -49,7 +44,7 @@ type context = {
 }
 
 type eval_result = {
-  frames: frame array;
+  frames: Core.frame array;
   dependencies: string array
 }
 

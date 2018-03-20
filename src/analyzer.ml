@@ -7,7 +7,7 @@ type inline_script = _inline_script Js.t
 
 type generated_scene = <
   label: string;
-  source: Obj.t
+  source: Estree.t
 > Js.t
 
 type analyze_result = <
@@ -16,6 +16,6 @@ type analyze_result = <
 > Js.t
 
 external filename: string -> string = "" [@@bs.val] [@@bs.module "cowlick-analyzer"]
-external analyze: Obj.t -> analyze_result = "" [@@bs.val] [@@bs.module "cowlick-analyzer"]
+external analyze: Core.scenario -> analyze_result = "" [@@bs.val] [@@bs.module "cowlick-analyzer"]
 external generate: string -> generated_scene array -> unit Js.Promise.t = "" [@@bs.val] [@@bs.module "cowlick-analyzer"]
 

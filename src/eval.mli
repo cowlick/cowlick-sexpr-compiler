@@ -1,12 +1,7 @@
 exception Eval_error of string
 
-type frame = <
-  label: string Js.Nullable.t;
-  scripts: Script.t array
-> Js.t
-
 type eval_result = {
-  frames: frame array;
+  frames: Core.frame array;
   dependencies: string array
 }
 
