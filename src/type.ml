@@ -41,7 +41,8 @@ let cdr = function
 let fold_left f seed expr =
   let rec inner acc = function
   | Cons(x, xs) -> inner (x |> Ast.kind_of |> f acc) (Ast.kind_of xs)
-  | _ -> acc
+  | Nil -> acc
+  | e -> failwith ("constructor is not cons or nil: " ^ (to_str e))
   in inner seed expr
 
 let pairwise expr =
@@ -50,7 +51,8 @@ let pairwise expr =
     acc |> Js.Array.push (v, x) |> ignore;
     inner acc x xs
   end
-  | _ -> acc in
+  | Nil -> acc
+  | e -> failwith ("constructor is not cons or nil: " ^ (to_str e)) in
   match expr with
   | Cons({ kind = x; loc = _ }, { kind = (Cons(_, _) as xs); loc = _ }) -> inner [||] x xs
   | _ -> [||]
