@@ -3,7 +3,7 @@
     "scripts": [
       {
         "tag": "eval",
-        "data": {
+        "program": {
           "type": "Program",
           "body": [
             {
@@ -44,7 +44,7 @@
       },
       {
         "tag": "eval",
-        "data": {
+        "program": {
           "type": "Program",
           "body": [
             {
@@ -85,26 +85,22 @@
       },
       {
         "tag": "removeLayer",
-        "data": {
-          "name": "choice"
-        }
+        "name": "choice"
       },
       {
         "tag": "text",
-        "data": {
-          "clear": true,
-          "values": [
-            {
-              "type": "current",
-              "name": "foo"
-            },
-            " ",
-            {
-              "type": "current",
-              "name": "bar"
-            }
-          ]
-        }
+        "clear": true,
+        "values": [
+          {
+            "type": "current",
+            "name": "foo"
+          },
+          " ",
+          {
+            "type": "current",
+            "name": "bar"
+          }
+        ]
       }
     ]
   }

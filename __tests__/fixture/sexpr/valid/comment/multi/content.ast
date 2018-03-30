@@ -3,12 +3,10 @@
     "scripts": [
       {
         "tag": "text",
-        "data": {
-          "clear": false,
-          "values": [
-            "コメントテスト"
-          ]
-        }
+        "clear": false,
+        "values": [
+          "コメントテスト"
+        ]
       }
     ]
   }

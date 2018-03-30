@@ -15,7 +15,7 @@ type analyze_result = <
   scripts: inline_script array
 > Js.t
 
-external filename: string -> string = "" [@@bs.val] [@@bs.module "cowlick-analyzer"]
-external analyze: Core.scenario -> analyze_result = "" [@@bs.val] [@@bs.module "cowlick-analyzer"]
-external generate: string -> generated_scene array -> unit Js.Promise.t = "" [@@bs.val] [@@bs.module "cowlick-analyzer"]
+external filename: string -> string = "" [@@bs.val] [@@bs.module "@cowlick/analyzer"]
+external analyze: Core.scenario -> analyze_result = "" [@@bs.val] [@@bs.module "@cowlick/analyzer"]
+external generate: string -> generated_scene array -> unit Js.Promise.t = "" [@@bs.val] [@@bs.module "@cowlick/analyzer"]
 

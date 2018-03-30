@@ -27,7 +27,7 @@
     "bs-platform": "2.2.2"
   },
   "dependencies": {
-    "cowlick-analyzer": "0.4.2",
+    "@cowlick/analyzer": "0.5.0",
     "minimist.re": "0.0.4"
   }
 }

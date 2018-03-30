@@ -3,48 +3,43 @@
     "scripts": [
       {
         "tag": "ifElse",
-        "data": {
-          "conditions": [
-            {
-              "expression": {
-                "type": "Program",
-                "body": [
-                  {
-                    "type": "ExpressionStatement",
-                    "expression": {
-                      "type": "Literal",
-                      "value": true,
-                      "raw": "true"
-                    }
-                  }
-                ],
-                "sourceType": "script"
-              },
-              "scripts": [
+        "conditions": [
+          {
+            "tag": "condition",
+            "expression": {
+              "type": "Program",
+              "body": [
                 {
-                  "tag": "text",
-                  "data": {
-                    "clear": false,
-                    "values": [
-                      "first"
-                    ]
+                  "type": "ExpressionStatement",
+                  "expression": {
+                    "type": "Literal",
+                    "value": true,
+                    "raw": "true"
                   }
                 }
-              ]
-            }
-          ],
-          "elseBody": [
-            {
-              "tag": "text",
-              "data": {
+              ],
+              "sourceType": "script"
+            },
+            "scripts": [
+              {
+                "tag": "text",
                 "clear": false,
                 "values": [
-                  "second"
+                  "first"
                 ]
               }
-            }
-          ]
-        }
+            ]
+          }
+        ],
+        "elseBody": [
+          {
+            "tag": "text",
+            "clear": false,
+            "values": [
+              "second"
+            ]
+          }
+        ]
       }
     ]
   }

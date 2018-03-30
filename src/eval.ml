@@ -74,12 +74,9 @@ let eval_frame context env loc args =
   |> ignore;
   Nil
 
-let push_tag context name (data: 'a) =
+let push_tag context (data: 'a) =
   !(context.scripts)
-  |> Js.Array.push ([%bs.obj {
-    tag = name;
-    data = Obj.magic data
-  }])
+  |> Js.Array.push (Obj.magic data)
   |> ignore;
   Nil
 
@@ -87,22 +84,25 @@ let eval_text context env loc args =
   let add_clear clear =
     if clear then
       [%bs.obj {
+        tag = "removeLayer";
         name = "choice"
       }]
-      |> push_tag context "removeLayer"
+      |> push_tag context
       |> ignore
   in let text clear = function
     | Cons({ kind = String value; loc = _ }, { kind = Nil; loc = _ }) -> begin
       add_clear clear;
       [%bs.obj {
+        tag = "text";
         clear = Js.Boolean.to_js_boolean clear;
         values = [|value|]
       }]
-      |> push_tag context "text"
+      |> push_tag context
     end
     | Cons({ kind = InterpolatedString exprs; loc = _ }, {kind = Nil; loc = _ }) -> begin
       add_clear clear;
       [%bs.obj {
+        tag = "text";
         clear = Js.Boolean.to_js_boolean clear;
         values =
           Array.fold_right (fun ast acc ->
@@ -113,7 +113,7 @@ let eval_text context env loc args =
           ) exprs []
           |> Array.of_list
       }]
-      |> push_tag context "text"
+      |> push_tag context
     end
     | expr -> error loc "invalid text" expr in
   match car args with
@@ -123,8 +123,11 @@ let eval_text context env loc args =
 let eval_slot_set context _ loc args =
   match args with
   | Cons({ kind = Symbol(typ, _); loc = _ }, { kind = Cons({ kind = Symbol(name, _); loc = _ }, { kind = Cons({ kind = expr; loc = _ }, _); loc = _ }); loc = _ }) ->
-    Translater.assign typ name expr
-    |> push_tag context "eval"
+    [%bs.obj {
+      tag = "eval";
+      program = Translater.assign typ name expr
+    }]
+    |> push_tag context
   | e -> error loc "invalid variable setting" e
 
 let eval_slot_ref _ loc args =
@@ -161,10 +164,11 @@ let eval_image context env loc args =
   match car args, eval env (car (cdr args)) with
   | (String assetId, Embedded layer) ->
     [%bs.obj {
+      tag = "image";
       assetId = assetId;
       layer = layer
     }]
-    |> push_tag context "image"
+    |> push_tag context
   | (e, _) -> error loc "image tag requires asset id" e
 
 let eval_if context env loc args =
@@ -179,15 +183,17 @@ let eval_if context env loc args =
     let e2 = !(context.scripts) in
     context.scripts := current;
     [%bs.obj {
+      tag = "ifElse";
       conditions = [|
         {
+          tag = "condition";
           expression = Translater.return_body cond;
           scripts = e1
         }
       |];
       elseBody = e2
     }]
-    |> push_tag context "ifElse"
+    |> push_tag context
   end
   | e -> error loc "syntax error [if cond if-body else-body]" e
 
@@ -204,6 +210,7 @@ let eval_cond context env loc args =
     eval env expr |> ignore;
     conditions
     |> Js.Array.push [%bs.obj {
+      tag = "condition";
       expression = Translater.return_body pred;
       scripts = !(context.scripts)
     }]
@@ -216,10 +223,11 @@ let eval_cond context env loc args =
     let e = inner args in
     context.scripts := current;
     [%bs.obj {
+      tag = "ifElse";
       conditions = conditions;
       elseBody = e
     }]
-    |> push_tag context "ifElse"
+    |> push_tag context
 
 let eval_ruby _ loc args =
   let options = Js.Dict.empty () in
@@ -258,6 +266,7 @@ let path_to_scene_name context scene =
 
 let eval_jump (context: context) _ loc args =
   let target = Js.Dict.empty () in
+  Js.Dict.set target "tag" "jump";
   let rec inner loc = function
   | Cons({ kind = Symbol(key, _); loc = _ }, { kind = xs; loc = l }) ->
     let k, v =
@@ -270,7 +279,7 @@ let eval_jump (context: context) _ loc args =
       | ("label", (String v | Symbol(v, _))) -> ("frame", v)
       | (_, e) -> error l ("unknwon argument [" ^ key ^ "]") e
     in
-      Js.Dict.set target k v |> ignore;
+      Js.Dict.set target k v;
       inner loc (cdr xs)
   | Cons({ kind = x; loc = l1 }, { kind = xs; loc = l2 }) ->
     inner l1 x;
@@ -279,11 +288,10 @@ let eval_jump (context: context) _ loc args =
   | e -> error loc ("invalid jump option") e
   in
     inner loc args;
-    push_tag context "jump" target
+    push_tag context target
 
 let eval_user_defined context _ loc args =
-  let layer = Js.Dict.empty () in
-  let rec inner name loc = function
+  let rec inner name loc layer = function
   | Cons({ kind = Symbol(key, _); loc = _ }, { kind = xs; loc = l }) ->
     let value: Script.data =
       match car xs with
@@ -292,18 +300,25 @@ let eval_user_defined context _ loc args =
       | Number v -> Obj.magic v
       | e -> error l ("type error [" ^ key ^ "]") e
     in
-      Js.Dict.set layer key value |> ignore;
-      inner name loc (cdr xs)
+      Js.Dict.set layer key value;
+      inner name loc layer (cdr xs)
   | Cons({ kind = x; loc = l1 }, { kind = xs; loc = l2 }) ->
-    inner name l1 x;
-    inner name l2 xs
+    inner name l1 layer x;
+    inner name l2 layer xs
   | Nil -> ()
   | e -> error loc ("invalid option in [" ^ name ^ "]") e
   in
     match args with
-    | Cons({ kind = Symbol(name, _); loc = _ }, { kind = xs; loc = l }) ->
-      inner name l xs;
-      push_tag context name layer
+    | Cons({ kind = Symbol(name, _); loc = _ }, { kind = xs; loc = l }) -> begin
+      let layer = Js.Dict.empty () in
+      Js.Dict.set layer "tag" (Obj.magic name);
+      inner name l layer xs;
+      [%bs.obj {
+        tag = "extension";
+        data = layer
+      }]
+      |> push_tag context
+    end
     | e -> error loc "invalid operation" e
 
 let init_env context =
