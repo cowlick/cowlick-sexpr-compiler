@@ -1,0 +1,42 @@
+[
+  {
+    "label": "test",
+    "scripts": [
+      {
+        "tag": "choice",
+        "layer": {
+          "name": "choice"
+        },
+        "values": [
+          {
+            "tag": "jump",
+            "frame": "test",
+            "text": "test1"
+          },
+          {
+            "tag": "jump",
+            "scene": "content",
+            "frame": "test2",
+            "text": "test2"
+          }
+        ]
+      },
+      {
+        "tag": "trigger",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "label": "test2",
+    "scripts": [
+      {
+        "tag": "text",
+        "clear": false,
+        "values": [
+          "テスト2"
+        ]
+      }
+    ]
+  }
+]

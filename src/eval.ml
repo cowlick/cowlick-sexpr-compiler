@@ -264,7 +264,7 @@ let path_to_scene_name context scene =
     |> Node.Path.dirname
   in Node.Path.join [| dir; Analyzer.filename scene |]
 
-let eval_jump (context: context) _ loc args =
+let jump_script (context: context) loc args =
   let target = Js.Dict.empty () in
   Js.Dict.set target "tag" "jump";
   let rec inner loc = function
@@ -277,6 +277,7 @@ let eval_jump (context: context) _ loc args =
         (key, name)
       end
       | ("label", (String v | Symbol(v, _))) -> ("frame", v)
+      | ("text", String v) -> (key, v)
       | (_, e) -> error l ("unknwon argument [" ^ key ^ "]") e
     in
       Js.Dict.set target k v;
@@ -288,7 +289,38 @@ let eval_jump (context: context) _ loc args =
   | e -> error loc ("invalid jump option") e
   in
     inner loc args;
-    push_tag context target
+    target
+
+let eval_jump (context: context) _ loc args =
+  jump_script context loc args
+  |> push_tag context
+
+type trigger = On | Off
+
+let eval_choice (context: context) _ loc args =
+  [%bs.obj {
+    tag = "choice";
+    layer = {
+      name = "choice"
+    };
+    values =
+      args
+      |> fold_left (fun acc expr ->
+        match expr with
+        | Cons({ kind = Symbol("item", _); loc = _ }, { kind = xs; loc = l }) -> begin
+          Js.Array.push (jump_script context l xs) acc |> ignore;
+          acc
+        end
+        | e -> error loc "invalid choice item" e
+      ) [||]
+  }]
+  |> push_tag context
+  |> ignore;
+  [%bs.obj {
+    tag = "trigger";
+    value = Off
+  }]
+  |> push_tag context
 
 let eval_user_defined context _ loc args =
   let rec inner name loc layer = function
@@ -337,6 +369,7 @@ let init_env context =
   add_primitive "cond" (eval_cond context);
   add_primitive "ruby" eval_ruby;
   add_primitive "jump" (eval_jump context);
+  add_primitive "choice" (eval_choice context);
   add_primitive user_defined_env_name (eval_user_defined context);
 
   env
