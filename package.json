@@ -1,5 +1,5 @@
 {
-  "name": "cowlick-sexpr-compiler",
+  "name": "@cowlick/sexpr-compiler",
   "version": "0.0.1",
   "description": "cowlick S-expression compiler",
   "main": "lib/js/src/index.js",
@@ -13,6 +13,7 @@
     "bsconfig.json"
   ],
   "scripts": {
+    "prepare": "npm run build",
     "clean": "bsb -clean-world",
     "build": "rollup -c",
     "build:bsb": "bsb -make-world",
@@ -39,5 +40,8 @@
     "roots": [
       "lib/js/__tests__"
     ]
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
