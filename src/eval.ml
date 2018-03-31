@@ -139,17 +139,17 @@ let eval_slot_ref _ loc args =
     }])
   | e -> error loc "invalid variable reference" e
 
-let eval_layer _ loc args =
-  let layer = Js.Dict.empty () in
+let layer_script loc args layer =
   let rec inner = function
   | Cons({ kind = Symbol(key, _); loc = _ }, { kind = xs; loc = l }) ->
     let value: Script.data =
       match key, car xs with
       | ("name", String v) -> Obj.magic v
-      | (("x" | "y"), Number v) -> Obj.magic v
+      | (("x" | "y" | "opacity"), Number v) -> Obj.magic v
+      | ("visible", Bool v) -> Obj.magic (Js.Boolean.to_js_boolean v)
       | (_, e) -> error l ("type error [" ^ key ^ "]") e
     in
-      Js.Dict.set layer key value |> ignore;
+      Js.Dict.set layer key value;
       inner (cdr xs)
   | Cons({ kind = x; loc = _ }, { kind = xs; loc = _ }) ->
     inner x;
@@ -157,18 +157,26 @@ let eval_layer _ loc args =
   | Nil -> ()
   | e -> error loc "invalid layer option" e
   in
-    inner args;
-    Embedded (Obj.magic layer)
+    inner args
 
-let eval_image context env loc args =
-  match car args, eval env (car (cdr args)) with
-  | (String assetId, Embedded layer) ->
+let eval_layer (context: context) _ loc args =
+  let layer = Js.Dict.empty () in
+  Js.Dict.set layer "tag" (Obj.magic "layer");
+  layer_script loc args layer;
+  push_tag context layer
+
+let eval_image context _ loc args =
+  match car args, car (cdr args) with
+  | (String assetId, Cons({ kind = Symbol("layer", _); loc = l }, { kind = xs; loc = _ })) -> begin
+    let layer = Js.Dict.empty () in
+    layer_script l xs layer;
     [%bs.obj {
       tag = "image";
       assetId = assetId;
-      layer = layer
+      layer
     }]
     |> push_tag context
+  end
   | (e, _) -> error loc "image tag requires asset id" e
 
 let eval_if context env loc args =
@@ -364,7 +372,7 @@ let init_env context =
   add_primitive "slot-ref" eval_slot_ref;
   add_primitive "ref" eval_slot_ref;
   add_primitive "image" (eval_image context);
-  add_primitive "layer" eval_layer;
+  add_primitive "layer" (eval_layer context);
   add_primitive "if" (eval_if context);
   add_primitive "cond" (eval_cond context);
   add_primitive "ruby" eval_ruby;
