@@ -30,9 +30,10 @@
       "type": "dev"
     }
   ],
-  "package-specs": {
-    "module": "commonjs"
-  },
+  "package-specs": [
+    "commonjs",
+    "es6"
+  ],
   "refmt": 3,
   "suffix": ".js",
   "bs-dependencies": [

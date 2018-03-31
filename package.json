@@ -8,15 +8,16 @@
   },
   "files": [
     "bin",
-    "lib/js/src",
+    "dist",
     "src",
     "bsconfig.json"
   ],
   "scripts": {
     "clean": "bsb -clean-world",
-    "build": "bsb -make-world",
-    "watch": "bsb -make-world -w",
-    "test": "npm run build && jest --coverage"
+    "build": "rollup -c",
+    "build:bsb": "bsb -make-world",
+    "watch": "rollup -c -w",
+    "test": "npm run build:bsb && jest --coverage"
   },
   "keywords": [],
   "author": "",
@@ -24,10 +25,19 @@
   "devDependencies": {
     "@glennsl/bs-jest": "0.4.2",
     "bs-glob": "0.1.1",
-    "bs-platform": "2.2.2"
+    "bs-platform": "2.2.3",
+    "rollup": "0.57.1",
+    "rollup-plugin-bucklescript": "0.6.1",
+    "rollup-plugin-node-resolve": "3.3.0",
+    "rollup-plugin-uglify": "3.0.0"
   },
   "dependencies": {
     "@cowlick/analyzer": "0.5.0",
     "minimist.re": "0.0.4"
+  },
+  "jest": {
+    "roots": [
+      "lib/js/__tests__"
+    ]
   }
 }

@@ -92,6 +92,7 @@ typings/
 
 .DS_Store
 lib/
+dist/
 parser.mli
 parser.ml
 lexer.mli
