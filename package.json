@@ -1,6 +1,6 @@
 {
   "name": "@cowlick/sexpr-compiler",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "cowlick S-expression compiler",
   "main": "lib/js/src/index.js",
   "bin": {
