@@ -94,7 +94,7 @@ let eval_text context env loc args =
       add_clear clear;
       [%bs.obj {
         tag = "text";
-        clear = Js.Boolean.to_js_boolean clear;
+        clear;
         values = [|value|]
       }]
       |> push_tag context
@@ -103,7 +103,7 @@ let eval_text context env loc args =
       add_clear clear;
       [%bs.obj {
         tag = "text";
-        clear = Js.Boolean.to_js_boolean clear;
+        clear;
         values =
           Array.fold_right (fun ast acc ->
             match ast |> Ast.kind_of |> eval env with
@@ -146,7 +146,7 @@ let layer_script loc args layer =
       match key, car xs with
       | ("name", String v) -> Obj.magic v
       | (("x" | "y" | "opacity"), Number v) -> Obj.magic v
-      | ("visible", Bool v) -> Obj.magic (Js.Boolean.to_js_boolean v)
+      | ("visible", Bool v) -> Obj.magic v
       | (_, e) -> error l ("type error [" ^ key ^ "]") e
     in
       Js.Dict.set layer key value;

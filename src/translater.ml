@@ -14,7 +14,7 @@ let number_ast value =
   literal value (sprintf "%f" value)
 
 let bool_ast value =
-  literal (Js.Boolean.to_js_boolean value) (sprintf "%b" value)
+  literal value (sprintf "%b" value)
 
 let str_ast str =
   literal str (sprintf "\"%s\"" str)
@@ -77,7 +77,7 @@ let member receiver property =
     _type = "MemberExpression";
     _object = receiver;
     property;
-    computed = Js.false_
+    computed = false
   }]
 
 let assign typ name expr : Estree.t =

@@ -26,7 +26,7 @@
   "devDependencies": {
     "@glennsl/bs-jest": "0.4.2",
     "bs-glob": "0.1.1",
-    "bs-platform": "2.2.3",
+    "bs-platform": "3.0.0",
     "rollup": "0.57.1",
     "rollup-plugin-bucklescript": "0.6.1",
     "rollup-plugin-node-resolve": "3.3.0",
