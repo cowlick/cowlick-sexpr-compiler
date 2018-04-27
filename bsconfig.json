@@ -1,5 +1,5 @@
 {
-  "name": "cowlick-sexpr-compiler",
+  "name": "@cowlick/sexpr-compiler",
   "version": "0.0.2",
   "generators" : [
     {
