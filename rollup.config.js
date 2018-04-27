@@ -16,6 +16,8 @@ export default {
     uglify()
   ],
   external: [
-    "@cowlick/analyzer"
+    "@cowlick/analyzer",
+    "fs",
+    "path"
   ]
 };
