@@ -1,18 +1,21 @@
-import bucklescript from "rollup-plugin-bucklescript";
 import resolve from "rollup-plugin-node-resolve";
-import uglify from "rollup-plugin-uglify";
+import commonjs from "rollup-plugin-commonjs";
+import babel from "rollup-plugin-babel";
+import {uglify} from "rollup-plugin-uglify";
 
 export default {
-  input: "src/cli.re",
+  input: "lib/js/src/cli.js",
   output: {
     file: "dist/cli.js",
     format: "cjs",
   },
   plugins: [
-    bucklescript({
-      module: "es6"
+    resolve({jsnext: true}),
+    commonjs(),
+    babel({
+      plugins: ["@babel/external-helpers"],
+      externalHelpers: true
     }),
-    resolve(),
     uglify()
   ],
   external: [
