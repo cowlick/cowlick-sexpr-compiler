@@ -1,11 +1,10 @@
 language: node_js
 sudo: required
-install: wget https://raw.githubusercontent.com/ocaml/ocaml-ci-scripts/master/.travis-opam.sh
+install: wget https://raw.githubusercontent.com/ocaml/ocaml-ci-scripts/master/.travis-opam.sh; bash -ex .travis-opam.sh
 node_js: "stable"
 env:
   - OCAML_VERSION=4.02
 script:
 - npm install
-- bash -ex .travis-opam.sh
 - eval `opam config env`
 - npm test
