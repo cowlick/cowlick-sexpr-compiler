@@ -5,6 +5,7 @@ node_js: "stable"
 env:
   - OCAML_VERSION=4.02
 script:
-- npm install
 - eval `opam config env`
+- export PATH=$PATH:/home/travis/.opam/ocaml-base-compiler.4.02.3/bin
+- npm install
 - npm test
