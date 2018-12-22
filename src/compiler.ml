@@ -43,12 +43,15 @@ let parse input =
 
 let compile outDir input =
   let ast = parse input in
-  let result = analyze ast in
+  let result = analyze ast [||] in
   let () =
     try mkdirSync outDir
     with _ -> Js.log("output directory already exists: " ^ outDir)
   in
-  Array.map (fun s -> s##write outDir) result##scripts
-  |> Array.append [| generate outDir result##scenario |]
-  |> Js.Promise.all
+  result
+  |> Js.Promise.then_ (fun r -> begin
+    Array.map (fun s -> s##write outDir) r##scripts
+    |> Array.append [| generate outDir r##scenario |]
+    |> Js.Promise.all
+  end)
 
