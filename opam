@@ -6,8 +6,10 @@ author: "pocketberserker"
 homepage: "https://github.com/cowlick/cowlick-sexpr-compiler"
 license: "MIT"
 bug-reports: "https://github.com/cowlick/cowlick-sexpr-compiler/issues"
-dev-repo: "https://github.com/cowlick/cowlick-sexpr-compiler"
+dev-repo: "git://github.com/cowlick/cowlick-sexpr-compiler"
 build: []
 install: []
 remove: ["ocamlfind" "remove" "project"]
 depends: ["ocamlfind" "menhir"]
+synopsis: "cowlick S-expression compiler"
+description: """cowlick S-expression compiler"""
