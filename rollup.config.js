@@ -20,6 +20,7 @@ export default {
   ],
   external: [
     "@cowlick/analyzer",
+    "commandpost",
     "fs",
     "path"
   ]

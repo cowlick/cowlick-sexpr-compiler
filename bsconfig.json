@@ -37,7 +37,7 @@
   "refmt": 3,
   "suffix": ".js",
   "bs-dependencies": [
-    "minimist.re"
+    "@pocketberserker/bs-commandpost"
   ],
   "bs-dev-dependencies": [
     "@glennsl/bs-jest",
