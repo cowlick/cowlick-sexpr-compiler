@@ -41,9 +41,9 @@ let parse input =
     end
   in inner [||] [| filename input |]
 
-let compile outDir input =
+let compile outDir plugins input =
   let ast = parse input in
-  let result = analyze ast [||] in
+  let result = analyze ast plugins in
   let () =
     try mkdirSync outDir
     with _ -> Js.log("output directory already exists: " ^ outDir)

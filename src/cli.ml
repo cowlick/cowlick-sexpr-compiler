@@ -2,6 +2,7 @@ open Commandpost
 
 type root_options = <
   out: string;
+  plugins: string array;
 > Js.t
 
 type root_args = <
@@ -16,9 +17,12 @@ let root: (root_options, root_args) Command.t =
   |. Command.action (fun opts args _ ->
     let current = Sys.getcwd () in
     let out = Node.Path.join [|current; opts##out|] in
+    let plugins =
+      opts##plugins
+      |> Array.map (fun p -> Analyzer.plugin (Node.Path.resolve current p)) in
     args##entry
     |> Filename.concat current
-    |> Compiler.compile out
+    |> Compiler.compile out plugins
   );;
 
 root
